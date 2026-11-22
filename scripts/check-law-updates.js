@@ -24,11 +24,11 @@ const WATCH_TARGETS = [
   { id: "employment-insurance", target: "law", query: "고용보험법", scope: "고용보험료·실업급여" },
   { id: "local-tax", target: "law", query: "지방세법", scope: "주택 취등록세·지방소득세" },
   { id: "gift-tax", target: "law", query: "상속세 및 증여세법", scope: "증여세 공제·세율" },
-  { id: "minimum-wage", target: "admrul", query: "최저임금 고시", scope: "주휴수당·실업급여 하한액" }
+  { id: "minimum-wage", target: "admrul", query: "적용 최저임금 고시", scope: "주휴수당·실업급여 하한액" }
 ];
 
 async function fetchLatestEntry(item) {
-  const url = `https://www.law.go.kr/DRF/lawSearch.do?OC=${encodeURIComponent(OC)}&target=${item.target}&type=JSON&display=5&query=${encodeURIComponent(item.query)}`;
+  const url = `https://www.law.go.kr/DRF/lawSearch.do?OC=${encodeURIComponent(OC)}&target=${item.target}&type=JSON&display=10&query=${encodeURIComponent(item.query)}`;
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`HTTP ${res.status} for ${item.query}`);
@@ -49,7 +49,8 @@ async function fetchLatestEntry(item) {
   }
   const raw = data && data.AdmRulSearch && data.AdmRulSearch.admrul;
   const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
-  const latest = list[0];
+  const filtered = list.filter((x) => !String(x["행정규칙명"] || "").includes("선원"));
+  const latest = filtered[0] || list[0];
   if (!latest) return null;
   return {
     name: latest["행정규칙명"] || item.query,
