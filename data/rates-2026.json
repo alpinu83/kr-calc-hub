@@ -1,0 +1,182 @@
+{
+  "year": 2026,
+  "siteName": "셈노트",
+  "siteTagline": "2026 한국 세금·금융 실수령 계산기",
+  "siteUrl": "https://alpinu83.github.io/kr-calc-hub",
+  "updatedAt": "2026-01-01",
+  "verification": {
+    "googleSiteVerification": "",
+    "naverSiteVerification": ""
+  },
+  "monetization": {
+    "adsensePublisherId": "",
+    "adsenseSlots": {
+      "homeMid": "",
+      "calcMid": "",
+      "pseoMid": ""
+    }
+  },
+  "salary": {
+    "nationalPensionRate": 0.045,
+    "nationalPensionMinBase": 390000,
+    "nationalPensionMaxBase": 6170000,
+    "healthInsuranceRate": 0.03545,
+    "longTermCareRateOfHealth": 0.1295,
+    "employmentInsuranceRate": 0.009,
+    "localIncomeTaxRate": 0.1,
+    "defaultNonTaxableMonthly": 200000
+  },
+  "freelancer": {
+    "incomeTaxRate": 0.03,
+    "localTaxRate": 0.003,
+    "totalRate": 0.033
+  },
+  "overseasStock": {
+    "basicDeduction": 2500000,
+    "capitalGainsTaxRate": 0.2,
+    "localTaxRate": 0.02,
+    "totalTaxRate": 0.22
+  },
+  "realEstate": {
+    "localEducationRateFactor": 0.1,
+    "ruralSpecialTaxOver85": 0.002,
+    "multiHomeRates": {
+      "2": 0.08,
+      "3": 0.12
+    }
+  },
+  "jeonse": {
+    "defaultConversionRate": 5.0,
+    "legalCapNote": "주택임대차보호법상 전월세 전환율 상한은 한국은행 기준금리 + 2.0%p입니다."
+  },
+  "severance": {
+    "defaultMonthlySalaryManwon": 350,
+    "defaultYears": 3
+  },
+  "unemployment": {
+    "dailyUpperLimit": 66000,
+    "dailyLowerLimit": 64192,
+    "benefitRate": 0.6
+  },
+  "weeklyHoliday": {
+    "minimumWage2026": 10030,
+    "minWeeklyHours": 15,
+    "maxStandardWeeklyHours": 40
+  },
+  "giftTax": {
+    "deductions": {
+      "spouse": 600000000,
+      "adultChild": 50000000,
+      "minorChild": 20000000,
+      "parent": 50000000,
+      "relative": 10000000,
+      "other": 0
+    },
+    "voluntaryFilingCreditRate": 0.03
+  },
+  "pseo": {
+    "salaryManwon": [
+      2400, 2600, 2800, 3000, 3200, 3400, 3600, 3800,
+      4000, 4200, 4500, 4800, 5000, 5200, 5500, 5800,
+      6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500,
+      10000, 11000, 12000, 13000, 14000, 15000, 18000, 20000
+    ],
+    "freelancerManwon": [
+      50, 100, 150, 200, 250, 300, 350, 400, 450, 500,
+      600, 700, 800, 900, 1000, 1200, 1500, 2000
+    ],
+    "stockTaxManwon": [
+      300, 400, 500, 700, 1000, 1500, 2000, 3000, 5000, 7000, 10000
+    ],
+    "realEstateEok": [
+      2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20
+    ],
+    "severanceMonthlyManwon": [250, 300, 350, 400, 500, 600],
+    "severanceYears": [1, 2, 3, 5, 10],
+    "unemploymentMonthlyManwon": [220, 250, 300, 350, 400, 500],
+    "unemploymentInsuredYears": [1, 3, 5, 10],
+    "weeklyHolidayHours": [15, 20, 25, 30, 35, 40],
+    "weeklyHolidayWages": [10030, 11000, 12000, 15000],
+    "giftTaxCases": [
+      { "slug": "adult-child-5000-manwon", "relation": "adultChild", "amountManwon": 5000 },
+      { "slug": "adult-child-1-eok", "relation": "adultChild", "amountManwon": 10000 },
+      { "slug": "adult-child-2-eok", "relation": "adultChild", "amountManwon": 20000 },
+      { "slug": "adult-child-3-eok", "relation": "adultChild", "amountManwon": 30000 },
+      { "slug": "adult-child-5-eok", "relation": "adultChild", "amountManwon": 50000 },
+      { "slug": "adult-child-10-eok", "relation": "adultChild", "amountManwon": 100000 },
+      { "slug": "minor-child-3000-manwon", "relation": "minorChild", "amountManwon": 3000 },
+      { "slug": "minor-child-5000-manwon", "relation": "minorChild", "amountManwon": 5000 },
+      { "slug": "minor-child-1-eok", "relation": "minorChild", "amountManwon": 10000 },
+      { "slug": "spouse-7-eok", "relation": "spouse", "amountManwon": 70000 },
+      { "slug": "spouse-10-eok", "relation": "spouse", "amountManwon": 100000 },
+      { "slug": "spouse-15-eok", "relation": "spouse", "amountManwon": 150000 },
+      { "slug": "relative-5000-manwon", "relation": "relative", "amountManwon": 5000 },
+      { "slug": "relative-1-eok", "relation": "relative", "amountManwon": 10000 }
+    ]
+  },
+  "affiliates": {
+    "salary": {
+      "badge": "절세 추천",
+      "title": "연말정산 환급액 미리 늘리는 체크리스트",
+      "description": "신용카드·체크카드 황금비율과 IRP·연금저축 세액공제 한도를 확인해 보세요.",
+      "cta": "세액공제 가이드 보기",
+      "url": "#affiliate-tax-saving"
+    },
+    "freelancer": {
+      "badge": "환급 체크",
+      "title": "프리랜서 5월 종합소득세 환급 조회",
+      "description": "3.3% 원천징수된 세금은 경비 처리를 통해 5월 종합소득세 신고 시 돌려받을 수 있습니다.",
+      "cta": "종소세 환급 체크하기",
+      "url": "#affiliate-freelancer-refund"
+    },
+    "stockTax": {
+      "badge": "절세 전략",
+      "title": "해외주식 양도세 250만 원 공제 활용법",
+      "description": "매년 12월 말 손실 종목 매도(손익통산)와 증여 공제로 양도세를 합법적으로 줄일 수 있습니다.",
+      "cta": "절세 체크리스트 보기",
+      "url": "#affiliate-stock-tax"
+    },
+    "realEstate": {
+      "badge": "비용 절감",
+      "title": "주택담보대출 금리 비교 & 생애최초 감면",
+      "description": "생애최초 주택 구입 시 최대 200만 원 취득세 감면 요건과 시중 은행 금리를 함께 비교하세요.",
+      "cta": "감면 요건 확인하기",
+      "url": "#affiliate-mortgage"
+    },
+    "jeonse": {
+      "badge": "임대차 체크",
+      "title": "전세보증보험 가입 조건 & 월세 세액공제",
+      "description": "보증금 안전 여부를 확인하고, 무주택 세대주라면 연 최대 17% 월세 세액공제도 챙겨보세요.",
+      "cta": "세액공제 조건 보기",
+      "url": "#affiliate-jeonse"
+    },
+    "severance": {
+      "badge": "퇴직금 절세",
+      "title": "퇴직금 IRP 계좌 수령 시 퇴직소득세 30% 감면",
+      "description": "퇴직금을 IRP 계좌로 이전해 연금으로 수령하면 퇴직소득세의 30~40%를 절감할 수 있습니다.",
+      "cta": "IRP 혜택 비교하기",
+      "url": "#affiliate-irp"
+    },
+    "unemployment": {
+      "badge": "구직 지원",
+      "title": "실업급여 수급 중 내일배움카드 국비지원 활용",
+      "description": "구직급여를 받으면서 최대 500만 원 한도의 직업훈련 국비지원을 함께 신청할 수 있습니다.",
+      "cta": "지원 조건 확인하기",
+      "url": "#affiliate-unemployment"
+    },
+    "weeklyHoliday": {
+      "badge": "근로 권리",
+      "title": "알바·단시간 근로자 4대보험 & 급여명세서 체크",
+      "description": "주 15시간 이상 개근 시 주휴수당 지급은 법적 의무입니다. 근로계약서 필수 항목을 확인하세요.",
+      "cta": "필수 체크리스트 보기",
+      "url": "#affiliate-labor"
+    },
+    "giftTax": {
+      "badge": "증여 절세",
+      "title": "10년 주기 증여세 공제 & 홈택스 셀프 신고 가이드",
+      "description": "증여일로부터 3개월 이내 자진신고하면 산출세액의 3%를 바로 공제받을 수 있습니다.",
+      "cta": "자진신고 방법 보기",
+      "url": "#affiliate-gift-tax"
+    }
+  }
+}
