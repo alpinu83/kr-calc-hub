@@ -8,7 +8,7 @@
   <rect width="1200" height="630" fill="url(#bg)"/>
   <rect x="64" y="64" width="1072" height="502" rx="24" fill="#ffffff" stroke="#e5e8eb" stroke-width="2"/>
   <rect x="120" y="128" width="18" height="18" rx="4" fill="#191f28"/>
-  <text x="152" y="144" font-family="-apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="28" font-weight="700" fill="#191f28">셈노트 · SEMNOTE</text>
+  <text x="152" y="144" font-family="-apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="28" font-weight="700" fill="#191f28">세금계산기 · korea-tax-cal.com</text>
   <text x="120" y="256" font-family="-apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="60" font-weight="800" fill="#191f28">2026 한국 세금·금융</text>
   <text x="120" y="336" font-family="-apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="60" font-weight="800" fill="#2563eb">실수령액 계산기 허브</text>
   <text x="120" y="410" font-family="-apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" font-size="26" font-weight="500" fill="#4e5968">연봉 실수령액 · 3.3% · 퇴직금 · 실업급여 · 주휴수당 · 해외주식 · 취등록세 · 증여세 · 전월세</text>

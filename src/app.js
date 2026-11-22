@@ -96,7 +96,7 @@
     bindCopyButton("copy-salary-btn", () => {
       const annualWon = (Number(annualEl.value) || 0) * 10000;
       const res = Calc.calcSalary(annualWon, (Number(nonTaxEl.value) || 0) * 10000, Number(depsEl.value) || 1);
-      return `[셈노트 연봉 실수령액] 연봉 ${annualEl.value}만 원 → 월 실수령액 ${Calc.formatWon(res.monthlyNet)} (월 공제액 ${Calc.formatWon(res.totalDeduction)})`;
+      return `[세금계산기 연봉 실수령액] 연봉 ${annualEl.value}만 원 → 월 실수령액 ${Calc.formatWon(res.monthlyNet)} (월 공제액 ${Calc.formatWon(res.totalDeduction)})`;
     });
     update();
   }
@@ -144,7 +144,7 @@
     bindPresets("#free-presets", "free-amount", update);
     bindCopyButton("copy-free-btn", () => {
       const res = Calc.calcFreelancer((Number(amountEl.value) || 0) * 10000, mode);
-      return `[셈노트 3.3% 계산] 세전 ${Calc.formatWon(res.gross)} / 세금 ${Calc.formatWon(res.totalTax)} / 실수령 ${Calc.formatWon(res.net)}`;
+      return `[세금계산기 3.3% 계산] 세전 ${Calc.formatWon(res.gross)} / 세금 ${Calc.formatWon(res.totalTax)} / 실수령 ${Calc.formatWon(res.net)}`;
     });
     update();
   }
@@ -183,7 +183,7 @@
     bindPresets("#stock-presets", "stock-profit", update);
     bindCopyButton("copy-stock-btn", () => {
       const res = Calc.calcOverseasStockTax((Number(profitEl.value) || 0) * 10000, (Number(lossEl.value) || 0) * 10000);
-      return `[셈노트 해외주식 양도세] 순수익 ${Calc.formatWon(res.netProfit)} → 예상 양도세 ${Calc.formatWon(res.totalTax)} (세후 ${Calc.formatWon(res.afterTaxProfit)})`;
+      return `[세금계산기 해외주식 양도세] 순수익 ${Calc.formatWon(res.netProfit)} → 예상 양도세 ${Calc.formatWon(res.totalTax)} (세후 ${Calc.formatWon(res.afterTaxProfit)})`;
     });
     update();
   }
@@ -226,7 +226,7 @@
         Number(housesEl.value) || 1,
         over85El ? over85El.checked : false
       );
-      return `[셈노트 주택 취등록세] 매매가 ${priceEl.value}억 원 (${res.houses}주택) → 총 납부세액 ${Calc.formatWon(res.totalTax)}`;
+      return `[세금계산기 주택 취등록세] 매매가 ${priceEl.value}억 원 (${res.houses}주택) → 총 납부세액 ${Calc.formatWon(res.totalTax)}`;
     });
     update();
   }
@@ -265,7 +265,7 @@
         (Number(depositEl.value) || 0) * 10000,
         Number(rateEl.value)
       );
-      return `[셈노트 전월세 전환] 전세 ${jeonseEl.value}만 원 → 보증금 ${depositEl.value}만 원 / 월세 ${Calc.formatWon(res.monthlyRent)} (전환율 ${res.conversionRate}%)`;
+      return `[세금계산기 전월세 전환] 전세 ${jeonseEl.value}만 원 → 보증금 ${depositEl.value}만 원 / 월세 ${Calc.formatWon(res.monthlyRent)} (전환율 ${res.conversionRate}%)`;
     });
     update();
   }
@@ -296,7 +296,7 @@
     bindPresets("#sev-presets", "sev-monthly", update);
     bindCopyButton("copy-sev-btn", () => {
       const res = Calc.calcSeverance((Number(monthlyEl.value) || 0) * 10000, Number(yearsEl.value) || 0);
-      return `[셈노트 퇴직금] 월급 ${monthlyEl.value}만 원 · ${yearsEl.value}년 근속 → 실수령 약 ${Calc.formatWon(res.net)} (세전 ${Calc.formatWon(res.gross)})`;
+      return `[세금계산기 퇴직금] 월급 ${monthlyEl.value}만 원 · ${yearsEl.value}년 근속 → 실수령 약 ${Calc.formatWon(res.net)} (세전 ${Calc.formatWon(res.gross)})`;
     });
     update();
   }
@@ -333,7 +333,7 @@
         ageEl ? ageEl.checked : false,
         Number(yearsEl.value) || 1
       );
-      return `[셈노트 실업급여] 1일 ${Calc.formatWon(res.dailyBenefit)} × ${res.benefitDays}일 = 총 ${Calc.formatWon(res.totalBenefit)}`;
+      return `[세금계산기 실업급여] 1일 ${Calc.formatWon(res.dailyBenefit)} × ${res.benefitDays}일 = 총 ${Calc.formatWon(res.totalBenefit)}`;
     });
     update();
   }
@@ -362,7 +362,7 @@
     bindPresets("#wh-hours-presets", "wh-hours", update);
     bindCopyButton("copy-wh-btn", () => {
       const res = Calc.calcWeeklyHoliday(Number(wageEl.value) || 0, Number(hoursEl.value) || 0);
-      return `[셈노트 주휴수당] 시급 ${wageEl.value}원 · 주 ${hoursEl.value}시간 → 주휴수당 ${Calc.formatWon(res.holidayPay)} / 주급 ${Calc.formatWon(res.totalWeeklyPay)}`;
+      return `[세금계산기 주휴수당] 시급 ${wageEl.value}원 · 주 ${hoursEl.value}시간 → 주휴수당 ${Calc.formatWon(res.holidayPay)} / 주급 ${Calc.formatWon(res.totalWeeklyPay)}`;
     });
     update();
   }
@@ -391,7 +391,7 @@
     bindPresets("#gift-presets", "gift-amount", update);
     bindCopyButton("copy-gift-btn", () => {
       const res = Calc.calcGiftTax((Number(amountEl.value) || 0) * 10000, relEl.value);
-      return `[셈노트 증여세] 증여액 ${amountEl.value}만 원 → 예상 납부세액 ${Calc.formatWon(res.finalTax)}`;
+      return `[세금계산기 증여세] 증여액 ${amountEl.value}만 원 → 예상 납부세액 ${Calc.formatWon(res.finalTax)}`;
     });
     update();
   }

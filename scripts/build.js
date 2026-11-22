@@ -1645,7 +1645,7 @@ function buildTrustPages() {
     renderLayout({
       routePath: "/404.html",
       title: "페이지를 찾을 수 없습니다 (404)",
-      description: "요청하신 페이지를 찾을 수 없습니다. 셈노트 9종 계산기 목록으로 이동해 주세요.",
+      description: `요청하신 페이지를 찾을 수 없습니다. ${DATA.siteName} 9종 계산기 목록으로 이동해 주세요.`,
       activeNav: "",
       includeInSitemap: false,
       breadcrumbs: [{ label: "홈", href: "/" }, { label: "404", href: "/404.html" }],
@@ -1654,7 +1654,7 @@ function buildTrustPages() {
           <div class="not-found-code num">404</div>
           <h1>요청하신 페이지를 찾을 수 없습니다</h1>
           <p class="subtitle">주소가 변경되었거나 잘못 입력된 경로입니다. 아래 버튼 또는 상단 메뉴에서 원하시는 계산기를 선택해 주세요.</p>
-          <a class="not-found-cta" href="/">셈노트 홈으로 이동 →</a>
+          <a class="not-found-cta" href="/">${escapeHtml(DATA.siteName)} 홈으로 이동 →</a>
         </section>
 
         <section class="section-block">
@@ -1705,6 +1705,14 @@ Sitemap: ${BASE_URL}/sitemap.xml
     : `# data/rates-2026.json의 monetization.adsensePublisherId 입력 후 빌드하면 자동 생성됩니다.\n`;
   fs.writeFileSync(path.join(DIST, "ads.txt"), adsTxt, "utf8");
   fs.writeFileSync(path.join(DIST, ".nojekyll"), "", "utf8");
+  try {
+    const host = new URL(BASE_URL).hostname;
+    if (host && !host.endsWith(".github.io")) {
+      fs.writeFileSync(path.join(DIST, "CNAME"), `${host}\n`, "utf8");
+    }
+  } catch {
+    // ignore invalid URL
+  }
 }
 
 function main() {

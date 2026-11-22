@@ -1,7 +1,7 @@
-# 셈노트 (`kr-calc-hub`) — 2026 한국 세금·금융·근로 계산기 pSEO 허브
+# 세금계산기 (`korea-tax-cal.com`) — 2026 한국 세금·금융·근로 계산기 pSEO 허브
 
-- **라이브 사이트**: https://alpinu83.github.io/kr-calc-hub/
-- **사이트맵**: https://alpinu83.github.io/kr-calc-hub/sitemap.xml
+- **라이브 사이트**: https://korea-tax-cal.com/
+- **사이트맵**: https://korea-tax-cal.com/sitemap.xml
 
 운영비 **월 0원**(GitHub Pages + GitHub Actions)으로 유지보수를 최소화하면서, **Programmatic SEO(데이터 기반 정적 페이지 자동 생성)**로 검색 유입과 광고·제휴 수익을 얻기 위한 프로젝트입니다.
 
