@@ -15,9 +15,9 @@ function runTests() {
   assert.strictEqual(sZero.monthlyNet, 0);
   assert.strictEqual(sZero.totalDeduction, 0);
 
-  // National pension cap check at 1.5억
+  // National pension cap check at 1.5억 (2026.7~2027.6 상한 6,590,000원 × 4.75%)
   const sHigh = Calc.calcSalary(150000000, 200000, 1);
-  assert.strictEqual(sHigh.nationalPension, Math.floor((6170000 * 0.045) / 10) * 10);
+  assert.strictEqual(sHigh.nationalPension, Math.floor((6590000 * 0.0475) / 10) * 10);
 
   // 2. Freelancer 3.3%
   const f100 = Calc.calcFreelancer(1000000, "grossToNet");
@@ -68,18 +68,20 @@ function runTests() {
   assert.strictEqual(sevShort.eligible, false);
   assert.strictEqual(sevShort.gross, 0);
 
-  // 7. Unemployment
+  // 7. Unemployment (2026 상한 68,100원 / 하한 66,048원)
   const unemp = Calc.calcUnemployment(4000000, false, 4);
-  assert.strictEqual(unemp.dailyBenefit, 66000);
+  assert.strictEqual(unemp.dailyBenefit, 68100);
   assert.strictEqual(unemp.benefitDays, 180);
-  assert.strictEqual(unemp.totalBenefit, 66000 * 180);
+  assert.strictEqual(unemp.totalBenefit, 68100 * 180);
+  const unempLow = Calc.calcUnemployment(2200000, false, 1);
+  assert.strictEqual(unempLow.dailyBenefit, 66048);
 
-  // 8. Weekly Holiday Pay
-  const wh40 = Calc.calcWeeklyHoliday(10030, 40);
+  // 8. Weekly Holiday Pay (2026 최저시급 10,320원)
+  const wh40 = Calc.calcWeeklyHoliday(10320, 40);
   assert.strictEqual(wh40.eligible, true);
   assert.strictEqual(wh40.holidayHours, 8);
-  assert.strictEqual(wh40.holidayPay, 80240);
-  const wh10 = Calc.calcWeeklyHoliday(10030, 10);
+  assert.strictEqual(wh40.holidayPay, 82560);
+  const wh10 = Calc.calcWeeklyHoliday(10320, 10);
   assert.strictEqual(wh10.eligible, false);
   assert.strictEqual(wh10.holidayPay, 0);
 

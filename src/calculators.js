@@ -9,11 +9,11 @@
 
   const DEFAULT_RATES = {
     salary: {
-      nationalPensionRate: 0.045,
-      nationalPensionMinBase: 390000,
-      nationalPensionMaxBase: 6170000,
-      healthInsuranceRate: 0.03545,
-      longTermCareRateOfHealth: 0.1295,
+      nationalPensionRate: 0.0475,
+      nationalPensionMinBase: 410000,
+      nationalPensionMaxBase: 6590000,
+      healthInsuranceRate: 0.03595,
+      longTermCareRateOfHealth: 0.1314,
       employmentInsuranceRate: 0.009,
       localIncomeTaxRate: 0.1,
       defaultNonTaxableMonthly: 200000
@@ -409,8 +409,8 @@
    */
   function calcUnemployment(monthlySalaryWon, age50Plus, insuredYears, ratesInput) {
     const r = (ratesInput && ratesInput.unemployment) || {
-      dailyUpperLimit: 66000,
-      dailyLowerLimit: 64192,
+      dailyUpperLimit: 68100,
+      dailyLowerLimit: 66048,
       benefitRate: 0.6
     };
     const monthly = Math.max(0, Number(monthlySalaryWon) || 0);
@@ -453,7 +453,7 @@
    */
   function calcWeeklyHoliday(hourlyWage, weeklyHours, ratesInput) {
     const r = (ratesInput && ratesInput.weeklyHoliday) || {
-      minimumWage2026: 10030,
+      minimumWage2026: 10320,
       minWeeklyHours: 15,
       maxStandardWeeklyHours: 40
     };

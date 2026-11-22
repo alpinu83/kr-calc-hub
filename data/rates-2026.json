@@ -4,7 +4,7 @@
   "siteTagline": "2026 한국 세금·금융 실수령 계산기",
   "siteUrl": "https://alpinu83.github.io/kr-calc-hub",
   "repoUrl": "https://github.com/alpinu83/kr-calc-hub",
-  "updatedAt": "2026-01-01",
+  "updatedAt": "2026-11-22",
   "verification": {
     "googleSiteVerification": "yOTVOSl--boVXxkCQy1gU_Xp7J4zuJbx4hEmrH8C_fw",
     "naverSiteVerification": "69f684a322b2b375b0062f282de92526a7d5df6e"
@@ -22,11 +22,11 @@
     }
   },
   "salary": {
-    "nationalPensionRate": 0.045,
-    "nationalPensionMinBase": 390000,
-    "nationalPensionMaxBase": 6170000,
-    "healthInsuranceRate": 0.03545,
-    "longTermCareRateOfHealth": 0.1295,
+    "nationalPensionRate": 0.0475,
+    "nationalPensionMinBase": 410000,
+    "nationalPensionMaxBase": 6590000,
+    "healthInsuranceRate": 0.03595,
+    "longTermCareRateOfHealth": 0.1314,
     "employmentInsuranceRate": 0.009,
     "localIncomeTaxRate": 0.1,
     "defaultNonTaxableMonthly": 200000
@@ -59,12 +59,12 @@
     "defaultYears": 3
   },
   "unemployment": {
-    "dailyUpperLimit": 66000,
-    "dailyLowerLimit": 64192,
+    "dailyUpperLimit": 68100,
+    "dailyLowerLimit": 66048,
     "benefitRate": 0.6
   },
   "weeklyHoliday": {
-    "minimumWage2026": 10030,
+    "minimumWage2026": 10320,
     "minWeeklyHours": 15,
     "maxStandardWeeklyHours": 40
   },
@@ -101,7 +101,7 @@
     "unemploymentMonthlyManwon": [220, 250, 300, 350, 400, 500],
     "unemploymentInsuredYears": [1, 3, 5, 10],
     "weeklyHolidayHours": [15, 20, 25, 30, 35, 40],
-    "weeklyHolidayWages": [10030, 11000, 12000, 15000],
+    "weeklyHolidayWages": [10320, 11000, 12000, 15000],
     "giftTaxCases": [
       { "slug": "adult-child-5000-manwon", "relation": "adultChild", "amountManwon": 5000 },
       { "slug": "adult-child-1-eok", "relation": "adultChild", "amountManwon": 10000 },

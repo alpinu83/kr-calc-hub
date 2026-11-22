@@ -274,7 +274,16 @@ function renderLayout({
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand" href="/">
-        <span class="brand-dot" aria-hidden="true"></span>
+        <svg class="brand-mark" width="22" height="22" viewBox="0 0 64 64" aria-hidden="true">
+          <rect width="64" height="64" rx="14" fill="#0f172a"/>
+          <rect x="14" y="14" width="36" height="10" rx="3" fill="#2563eb"/>
+          <rect x="14" y="30" width="10" height="8" rx="2" fill="#f8fafc"/>
+          <rect x="27" y="30" width="10" height="8" rx="2" fill="#f8fafc"/>
+          <rect x="40" y="30" width="10" height="8" rx="2" fill="#93c5fd"/>
+          <rect x="14" y="42" width="10" height="8" rx="2" fill="#f8fafc"/>
+          <rect x="27" y="42" width="10" height="8" rx="2" fill="#f8fafc"/>
+          <rect x="40" y="42" width="10" height="8" rx="2" fill="#2563eb"/>
+        </svg>
         <span>${escapeHtml(DATA.siteName)}</span>
       </a>
       <nav class="nav-links" aria-label="계산기 메뉴">
@@ -374,14 +383,24 @@ function renderSalaryWidget(defaultManwon) {
           <div class="result-label">예상 월 실수령액</div>
           <div class="result-main num" id="res-monthly-net">${Calc.formatWon(res.monthlyNet)}</div>
           <div class="result-sub num" id="res-salary-sub">연 실수령액 약 ${Calc.formatWon(res.annualNet)} · 공제율 ${Calc.formatPercent(res.effectiveDeductionRate, 1)}</div>
+          <div class="ratio-wrap" aria-hidden="true">
+            <div class="ratio-bar">
+              <div class="ratio-net" id="bar-net" style="width:${(res.monthlyGross > 0 ? (res.monthlyNet / res.monthlyGross) * 100 : 100).toFixed(1)}%"></div>
+              <div class="ratio-deduct" id="bar-deduct" style="width:${(res.monthlyGross > 0 ? (1 - res.monthlyNet / res.monthlyGross) * 100 : 0).toFixed(1)}%"></div>
+            </div>
+            <div class="ratio-legend">
+              <span class="dot-net" id="legend-net">실수령 ${(res.monthlyGross > 0 ? (res.monthlyNet / res.monthlyGross) * 100 : 100).toFixed(1)}%</span>
+              <span class="dot-deduct" id="legend-deduct">공제 ${(res.monthlyGross > 0 ? (1 - res.monthlyNet / res.monthlyGross) * 100 : 0).toFixed(1)}%</span>
+            </div>
+          </div>
         </div>
         <table class="breakdown-table">
           <tbody>
             <tr><th>월 세전 급여</th><td id="res-monthly-gross">${Calc.formatWon(res.monthlyGross)}</td></tr>
-            <tr><th>국민연금 (4.5%)</th><td id="res-pension">${Calc.formatWon(res.nationalPension)}</td></tr>
-            <tr><th>건강보험 (3.545%)</th><td id="res-health">${Calc.formatWon(res.healthInsurance)}</td></tr>
-            <tr><th>장기요양보험</th><td id="res-care">${Calc.formatWon(res.longTermCare)}</td></tr>
-            <tr><th>고용보험 (0.9%)</th><td id="res-employment">${Calc.formatWon(res.employmentInsurance)}</td></tr>
+            <tr><th>국민연금 (${(DATA.salary.nationalPensionRate * 100).toFixed(2)}%)</th><td id="res-pension">${Calc.formatWon(res.nationalPension)}</td></tr>
+            <tr><th>건강보험 (${(DATA.salary.healthInsuranceRate * 100).toFixed(3)}%)</th><td id="res-health">${Calc.formatWon(res.healthInsurance)}</td></tr>
+            <tr><th>장기요양보험 (건보의 ${(DATA.salary.longTermCareRateOfHealth * 100).toFixed(2)}%)</th><td id="res-care">${Calc.formatWon(res.longTermCare)}</td></tr>
+            <tr><th>고용보험 (${(DATA.salary.employmentInsuranceRate * 100).toFixed(1)}%)</th><td id="res-employment">${Calc.formatWon(res.employmentInsurance)}</td></tr>
             <tr><th>근로소득세</th><td id="res-income-tax">${Calc.formatWon(res.incomeTax)}</td></tr>
             <tr><th>지방소득세 (10%)</th><td id="res-local-tax">${Calc.formatWon(res.localIncomeTax)}</td></tr>
             <tr class="total-row"><th>월 공제액 합계</th><td id="res-total-deduction">-${Calc.formatWon(res.totalDeduction)}</td></tr>
@@ -409,7 +428,7 @@ function buildSalaryPages() {
   const mainFaqs = [
     {
       q: "2026년 연봉 실수령액은 어떤 기준으로 계산되나요?",
-      a: "월 급여에서 비과세 식대(기본 20만 원)를 제외한 과세 급여를 기준으로 국민연금(4.5%), 건강보험(3.545%), 장기요양보험(건강보험료의 12.95%), 고용보험(0.9%), 근로소득세 및 지방소득세를 공제해 산출합니다."
+      a: `월 급여에서 비과세 식대(기본 20만 원)를 제외한 과세 급여를 기준으로 2026년 확정 요율인 국민연금(${(DATA.salary.nationalPensionRate * 100).toFixed(2)}%, 기준소득월액 41만~659만 원), 건강보험(${(DATA.salary.healthInsuranceRate * 100).toFixed(3)}%), 장기요양보험(건강보험료의 ${(DATA.salary.longTermCareRateOfHealth * 100).toFixed(2)}%), 고용보험(${(DATA.salary.employmentInsuranceRate * 100).toFixed(1)}%), 근로소득세 및 지방소득세를 공제해 산출합니다.`
     },
     {
       q: "비과세 식대를 늘리면 실수령액이 달라지나요?",
@@ -1437,57 +1456,63 @@ function buildHomePage() {
       priority: "1.0",
       breadcrumbs: [],
       bodyHtml: `
-        <header class="page-head">
+        <header class="page-head hero-head">
           <div class="page-head-row">
-            <h1>${DATA.year} 세금·금융 계산기</h1>
-            <span class="meta-tag">9개 계산기 · ${DATA.updatedAt} 기준</span>
+            <h1>${DATA.year} 세금·금융 실수령 계산기</h1>
+            <span class="meta-tag">9종 계산기 · ${DATA.updatedAt} 기준 검증</span>
           </div>
-          <p class="subtitle">국내 세율·4대보험·고용보험 기준 실수령액과 납부세액을 바로 계산합니다.</p>
+          <p class="subtitle">2026년 확정 법정 세율·4대보험·고용노동부 고시 기준으로 실수령액과 납부세액을 브라우저에서 즉시 산출합니다.</p>
+          <div class="stat-strip" aria-label="2026년 확정 법정 기준 요약">
+            <div class="stat-item"><span>최저시급</span><strong class="num">${DATA.weeklyHoliday.minimumWage2026.toLocaleString("ko-KR")}원</strong></div>
+            <div class="stat-item"><span>국민연금(근로자)</span><strong class="num">${(DATA.salary.nationalPensionRate * 100).toFixed(2)}%</strong></div>
+            <div class="stat-item"><span>건강보험(근로자)</span><strong class="num">${(DATA.salary.healthInsuranceRate * 100).toFixed(3)}%</strong></div>
+            <div class="stat-item"><span>실업급여 1일 상한</span><strong class="num">${DATA.unemployment.dailyUpperLimit.toLocaleString("ko-KR")}원</strong></div>
+          </div>
         </header>
 
         <section class="directory-grid" aria-label="전체 계산기">
           <a class="dir-card" href="/salary/">
-            <span class="dir-cat">급여 · 4대보험</span>
+            <div class="dir-top"><span class="dir-cat">급여 · 4대보험</span><span class="dir-arrow" aria-hidden="true">→</span></div>
             <h2>연봉 실수령액</h2>
-            <p>국민연금·건강보험·소득세 공제 후 월 실수령액</p>
+            <p>국민연금 4.75%·건보 3.595%·소득세 공제 후 월 실수령액</p>
           </a>
           <a class="dir-card" href="/freelancer/">
-            <span class="dir-cat">사업소득</span>
+            <div class="dir-top"><span class="dir-cat">사업소득</span><span class="dir-arrow" aria-hidden="true">→</span></div>
             <h2>프리랜서 3.3%</h2>
             <p>3.3% 원천징수 실수령 및 세전 계약금 역산</p>
           </a>
           <a class="dir-card" href="/severance/">
-            <span class="dir-cat">퇴직 · 이직</span>
+            <div class="dir-top"><span class="dir-cat">퇴직 · 이직</span><span class="dir-arrow" aria-hidden="true">→</span></div>
             <h2>퇴직금 계산기</h2>
             <p>근속연수공제 및 퇴직소득세 반영 실수령액</p>
           </a>
           <a class="dir-card" href="/unemployment/">
-            <span class="dir-cat">고용보험</span>
+            <div class="dir-top"><span class="dir-cat">고용보험</span><span class="dir-arrow" aria-hidden="true">→</span></div>
             <h2>실업급여 계산기</h2>
-            <p>1일 구직급여 상·하한액 및 소정급여일수 산출</p>
+            <p>1일 상한 68,100원·하한 66,048원 기준 구직급여</p>
           </a>
           <a class="dir-card" href="/weekly-holiday/">
-            <span class="dir-cat">단시간 근로</span>
+            <div class="dir-top"><span class="dir-cat">단시간 근로</span><span class="dir-arrow" aria-hidden="true">→</span></div>
             <h2>주휴수당 계산기</h2>
-            <p>주 15시간 이상 주휴수당 및 월 환산 급여</p>
+            <p>2026 최저시급 10,320원 기준 주휴수당·월급 환산</p>
           </a>
           <a class="dir-card" href="/stock-tax/">
-            <span class="dir-cat">해외투자</span>
+            <div class="dir-top"><span class="dir-cat">해외투자</span><span class="dir-arrow" aria-hidden="true">→</span></div>
             <h2>해외주식 양도세</h2>
             <p>연 250만 원 공제·손익통산 22% 양도세</p>
           </a>
           <a class="dir-card" href="/real-estate/">
-            <span class="dir-cat">부동산</span>
+            <div class="dir-top"><span class="dir-cat">부동산</span><span class="dir-arrow" aria-hidden="true">→</span></div>
             <h2>주택 취등록세</h2>
             <p>6억·9억 구간별 취득세·지방교육세·농특세</p>
           </a>
           <a class="dir-card" href="/gift-tax/">
-            <span class="dir-cat">상속 · 증여</span>
+            <div class="dir-top"><span class="dir-cat">상속 · 증여</span><span class="dir-arrow" aria-hidden="true">→</span></div>
             <h2>증여세 계산기</h2>
             <p>관계별 10년 공제 한도 및 자진신고 3% 공제</p>
           </a>
           <a class="dir-card" href="/jeonse/">
-            <span class="dir-cat">임대차</span>
+            <div class="dir-top"><span class="dir-cat">임대차</span><span class="dir-arrow" aria-hidden="true">→</span></div>
             <h2>전월세 전환율</h2>
             <p>전세 보증금 차액 기준 적정 월세 산출</p>
           </a>
@@ -1504,7 +1529,7 @@ function buildHomePage() {
             <a class="matrix-pill" href="/salary/10000-manwon/">연봉 1억 원</a>
             <a class="matrix-pill" href="/severance/350-manwon-3-year/">월 350만 · 3년 퇴직금</a>
             <a class="matrix-pill" href="/unemployment/350-manwon-3-year/">월 350만 · 3년 실업급여</a>
-            <a class="matrix-pill" href="/weekly-holiday/10030-won-20-hours/">최저시급 주 20시간 주휴수당</a>
+            <a class="matrix-pill" href="/weekly-holiday/${DATA.weeklyHoliday.minimumWage2026}-won-20-hours/">2026 최저시급 주 20시간 주휴수당</a>
             <a class="matrix-pill" href="/stock-tax/1000-manwon/">해외주식 1,000만 원 양도세</a>
             <a class="matrix-pill" href="/gift-tax/adult-child-1-eok/">성년 자녀 1억 증여세</a>
             <a class="matrix-pill" href="/real-estate/6-eok/">6억 아파트 취등록세</a>
