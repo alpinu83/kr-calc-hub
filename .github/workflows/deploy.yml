@@ -38,6 +38,9 @@ jobs:
       - name: Build static pSEO pages and sitemap
         run: npm run build
 
+      - name: Verify SEO metadata and internal links
+        run: npm run verify
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

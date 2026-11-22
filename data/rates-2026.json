@@ -3,10 +3,15 @@
   "siteName": "셈노트",
   "siteTagline": "2026 한국 세금·금융 실수령 계산기",
   "siteUrl": "https://alpinu83.github.io/kr-calc-hub",
+  "repoUrl": "https://github.com/alpinu83/kr-calc-hub",
   "updatedAt": "2026-01-01",
   "verification": {
     "googleSiteVerification": "",
     "naverSiteVerification": ""
+  },
+  "analytics": {
+    "ga4MeasurementId": "",
+    "clarityProjectId": ""
   },
   "monetization": {
     "adsensePublisherId": "",
@@ -116,67 +121,76 @@
   },
   "affiliates": {
     "salary": {
-      "badge": "절세 추천",
-      "title": "연말정산 환급액 미리 늘리는 체크리스트",
-      "description": "신용카드·체크카드 황금비율과 IRP·연금저축 세액공제 한도를 확인해 보세요.",
-      "cta": "세액공제 가이드 보기",
-      "url": "#affiliate-tax-saving"
+      "badge": "공식 안내",
+      "title": "연말정산 간소화 · 세액공제 공식 조회",
+      "description": "신용카드·체크카드 소득공제 및 IRP·연금저축 세액공제 내역은 국세청 홈택스에서 확인할 수 있습니다.",
+      "cta": "국세청 홈택스 바로가기",
+      "url": "https://www.hometax.go.kr",
+      "sponsored": false
     },
     "freelancer": {
       "badge": "환급 체크",
-      "title": "프리랜서 5월 종합소득세 환급 조회",
-      "description": "3.3% 원천징수된 세금은 경비 처리를 통해 5월 종합소득세 신고 시 돌려받을 수 있습니다.",
-      "cta": "종소세 환급 체크하기",
-      "url": "#affiliate-freelancer-refund"
+      "title": "프리랜서 5월 종합소득세 환급 신고",
+      "description": "3.3% 원천징수된 세금은 경비 처리를 통해 5월 종합소득세 정기신고 시 홈택스에서 환급 신청할 수 있습니다.",
+      "cta": "홈택스 종합소득세 안내",
+      "url": "https://www.hometax.go.kr",
+      "sponsored": false
     },
     "stockTax": {
-      "badge": "절세 전략",
-      "title": "해외주식 양도세 250만 원 공제 활용법",
-      "description": "매년 12월 말 손실 종목 매도(손익통산)와 증여 공제로 양도세를 합법적으로 줄일 수 있습니다.",
-      "cta": "절세 체크리스트 보기",
-      "url": "#affiliate-stock-tax"
+      "badge": "신고 안내",
+      "title": "해외주식 양도소득세 5월 확정신고",
+      "description": "연간 순수익 250만 원 초과 시 다음 해 5월 중 국세청 홈택스에서 손익통산 및 양도세 신고를 진행합니다.",
+      "cta": "홈택스 양도세 신고",
+      "url": "https://www.hometax.go.kr",
+      "sponsored": false
     },
     "realEstate": {
-      "badge": "비용 절감",
-      "title": "주택담보대출 금리 비교 & 생애최초 감면",
-      "description": "생애최초 주택 구입 시 최대 200만 원 취득세 감면 요건과 시중 은행 금리를 함께 비교하세요.",
-      "cta": "감면 요건 확인하기",
-      "url": "#affiliate-mortgage"
+      "badge": "공식 신고",
+      "title": "주택 취득세 전자신고 & 생애최초 감면 확인",
+      "description": "잔금일로부터 60일 이내 위택스(WeTax)에서 취득세 신고·납부 및 생애최초 감면 요건을 확인할 수 있습니다.",
+      "cta": "위택스 바로가기",
+      "url": "https://www.wetax.go.kr",
+      "sponsored": false
     },
     "jeonse": {
-      "badge": "임대차 체크",
-      "title": "전세보증보험 가입 조건 & 월세 세액공제",
-      "description": "보증금 안전 여부를 확인하고, 무주택 세대주라면 연 최대 17% 월세 세액공제도 챙겨보세요.",
-      "cta": "세액공제 조건 보기",
-      "url": "#affiliate-jeonse"
+      "badge": "임대차 보호",
+      "title": "전세보증금반환보증 가입 조건 확인",
+      "description": "주택도시보증공사(HUG)에서 전세보증보험 가입 가능 여부와 보증료율을 사전에 확인할 수 있습니다.",
+      "cta": "HUG 주택도시보증공사",
+      "url": "https://www.khug.or.kr",
+      "sponsored": false
     },
     "severance": {
-      "badge": "퇴직금 절세",
-      "title": "퇴직금 IRP 계좌 수령 시 퇴직소득세 30% 감면",
-      "description": "퇴직금을 IRP 계좌로 이전해 연금으로 수령하면 퇴직소득세의 30~40%를 절감할 수 있습니다.",
-      "cta": "IRP 혜택 비교하기",
-      "url": "#affiliate-irp"
+      "badge": "퇴직연금",
+      "title": "퇴직금 IRP 계좌 이전 및 금융상품 비교",
+      "description": "퇴직금을 IRP로 이전해 연금 수령 시 퇴직소득세 감면 혜택을 받을 수 있습니다. 금융감독원 파인에서 수수료를 비교하세요.",
+      "cta": "금감원 파인 바로가기",
+      "url": "https://fine.fss.or.kr",
+      "sponsored": false
     },
     "unemployment": {
-      "badge": "구직 지원",
-      "title": "실업급여 수급 중 내일배움카드 국비지원 활용",
-      "description": "구직급여를 받으면서 최대 500만 원 한도의 직업훈련 국비지원을 함께 신청할 수 있습니다.",
-      "cta": "지원 조건 확인하기",
-      "url": "#affiliate-unemployment"
+      "badge": "공식 신청",
+      "title": "실업급여(구직급여) 수급자격 및 온라인 신청",
+      "description": "고용24에서 수급자격 신청자 온라인 교육 수강, 이직확인서 처리 여부 조회 및 내일배움카드 신청이 가능합니다.",
+      "cta": "고용24 바로가기",
+      "url": "https://www.work24.go.kr",
+      "sponsored": false
     },
     "weeklyHoliday": {
-      "badge": "근로 권리",
-      "title": "알바·단시간 근로자 4대보험 & 급여명세서 체크",
-      "description": "주 15시간 이상 개근 시 주휴수당 지급은 법적 의무입니다. 근로계약서 필수 항목을 확인하세요.",
-      "cta": "필수 체크리스트 보기",
-      "url": "#affiliate-labor"
+      "badge": "근로 기준",
+      "title": "최저임금 · 주휴수당 · 근로계약서 공식 안내",
+      "description": "주 15시간 이상 소정근로시간 개근 시 주휴수당 지급은 법적 의무입니다. 고용노동부에서 근로기준법을 확인하세요.",
+      "cta": "고용노동부 바로가기",
+      "url": "https://www.moel.go.kr",
+      "sponsored": false
     },
     "giftTax": {
-      "badge": "증여 절세",
-      "title": "10년 주기 증여세 공제 & 홈택스 셀프 신고 가이드",
-      "description": "증여일로부터 3개월 이내 자진신고하면 산출세액의 3%를 바로 공제받을 수 있습니다.",
-      "cta": "자진신고 방법 보기",
-      "url": "#affiliate-gift-tax"
+      "badge": "셀프 신고",
+      "title": "10년 주기 증여세 공제 & 홈택스 전자신고",
+      "description": "증여일이 속하는 달의 말일부터 3개월 이내 홈택스에서 자진신고하면 산출세액의 3%를 공제받을 수 있습니다.",
+      "cta": "홈택스 증여세 신고",
+      "url": "https://www.hometax.go.kr",
+      "sponsored": false
     }
   }
 }

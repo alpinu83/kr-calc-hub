@@ -40,7 +40,7 @@ function cleanDist() {
 }
 
 function copyAssets() {
-  const files = ["styles.css", "calculators.js", "app.js"];
+  const files = ["styles.css", "calculators.js", "app.js", "favicon.svg", "og-image.svg"];
   for (const file of files) {
     fs.copyFileSync(path.join(ROOT, "src", file), path.join(DIST, "assets", file));
   }
@@ -65,14 +65,17 @@ function formatKoreanManwonLabel(manwon) {
 
 function renderAffiliateCard(key) {
   const item = DATA.affiliates && DATA.affiliates[key];
-  if (!item) return "";
+  if (!item || !item.url || item.url.startsWith("#")) return "";
+  const isExternal = /^https?:\/\//i.test(item.url);
+  const rel = item.sponsored ? "sponsored noopener noreferrer" : "noopener noreferrer";
+  const targetAttr = isExternal ? ` target="_blank"` : "";
   return `
-    <aside class="affiliate-strip" aria-label="관련 참고 안내">
+    <aside class="affiliate-strip" aria-label="관련 공식 안내">
       <div>
         <strong>${escapeHtml(item.title)}</strong>
         <span>${escapeHtml(item.description)}</span>
       </div>
-      <a class="affiliate-cta" href="${escapeHtml(item.url)}" rel="sponsored noopener noreferrer">${escapeHtml(item.cta)} →</a>
+      <a class="affiliate-cta" href="${escapeHtml(item.url)}"${targetAttr} rel="${rel}">${escapeHtml(item.cta)} →</a>
     </aside>
   `;
 }
@@ -144,10 +147,13 @@ function renderLayout({
   breadcrumbs,
   bodyHtml,
   faqs,
-  priority = "0.7"
+  priority = "0.7",
+  includeInSitemap = true
 }) {
   const canonical = `${BASE_URL}${routePath}`;
-  GENERATED_URLS.push({ loc: canonical, priority });
+  if (includeInSitemap) {
+    GENERATED_URLS.push({ loc: canonical, priority });
+  }
 
   const jsonLdGraph = [
     {
@@ -218,10 +224,22 @@ function renderLayout({
     DATA.verification && DATA.verification.naverSiteVerification
       ? `<meta name="naver-site-verification" content="${escapeHtml(DATA.verification.naverSiteVerification)}" />`
       : "";
+  const ga4Id = DATA.analytics && DATA.analytics.ga4MeasurementId;
+  const ga4Head = ga4Id
+    ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${escapeHtml(ga4Id)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${escapeHtml(ga4Id)}');</script>`
+    : "";
+  const clarityId = DATA.analytics && DATA.analytics.clarityProjectId;
+  const clarityHead = clarityId
+    ? `<script>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${escapeHtml(clarityId)}");</script>`
+    : "";
   const adsenseHead =
     DATA.monetization && DATA.monetization.adsensePublisherId
       ? `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${escapeHtml(DATA.monetization.adsensePublisherId)}" crossorigin="anonymous"></script>`
       : "";
+  const ogImageUrl = `${BASE_URL}/assets/og-image.svg`;
+  const repoLinkHtml = DATA.repoUrl
+    ? `<a href="${escapeHtml(DATA.repoUrl)}" target="_blank" rel="noopener noreferrer">GitHub</a>`
+    : "";
 
   return `<!DOCTYPE html>
 <html lang="ko">
@@ -230,15 +248,25 @@ function renderLayout({
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${escapeHtml(title)} · ${escapeHtml(DATA.siteName)}</title>
   <meta name="description" content="${escapeHtml(description)}" />
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
   <link rel="canonical" href="${escapeHtml(canonical)}" />
   ${googleVerify}
   ${naverVerify}
   <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="${escapeHtml(DATA.siteName)}" />
   <meta property="og:title" content="${escapeHtml(title)} · ${escapeHtml(DATA.siteName)}" />
   <meta property="og:description" content="${escapeHtml(description)}" />
   <meta property="og:url" content="${escapeHtml(canonical)}" />
+  <meta property="og:image" content="${escapeHtml(ogImageUrl)}" />
   <meta property="og:locale" content="ko_KR" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${escapeHtml(title)} · ${escapeHtml(DATA.siteName)}" />
+  <meta name="twitter:description" content="${escapeHtml(description)}" />
+  <meta name="twitter:image" content="${escapeHtml(ogImageUrl)}" />
   <link rel="stylesheet" href="/assets/styles.css" />
+  ${ga4Head}
+  ${clarityHead}
   ${adsenseHead}
   <script type="application/ld+json">${JSON.stringify(jsonLdGraph)}</script>
 </head>
@@ -267,8 +295,13 @@ function renderLayout({
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <div>${escapeHtml(DATA.siteName)} · ${DATA.year}년 세율·요율 기준</div>
-      <div>본 계산 결과는 참고용 추정치이며, 실제 세액은 개인 공제 항목에 따라 달라질 수 있습니다.</div>
+      <div>${escapeHtml(DATA.siteName)} · ${DATA.year}년 세율·요율 기준 · 본 계산 결과는 참고용 추정치입니다.</div>
+      <nav class="footer-links" aria-label="사이트 안내">
+        <a href="/about/">사이트 소개 · 면책고지</a>
+        <a href="/privacy/">개인정보처리방침</a>
+        <a href="/sitemap.xml">사이트맵</a>
+        ${repoLinkHtml}
+      </nav>
     </div>
   </footer>
 
@@ -278,14 +311,20 @@ function renderLayout({
 </html>`;
 }
 
+function applyBasePath(html) {
+  return BASE_PATH ? html.replace(/\b(href|src)="\/(?!\/)/g, `$1="${BASE_PATH}/`) : html;
+}
+
 function writePage(routePath, html) {
   const rel = routePath.replace(/^\/+/, "");
   const outDir = rel ? path.join(DIST, rel) : DIST;
   ensureDir(outDir);
-  const outputHtml = BASE_PATH
-    ? html.replace(/\b(href|src)="\/(?!\/)/g, `$1="${BASE_PATH}/`)
-    : html;
-  fs.writeFileSync(path.join(outDir, "index.html"), outputHtml, "utf8");
+  fs.writeFileSync(path.join(outDir, "index.html"), applyBasePath(html), "utf8");
+}
+
+function writeRootFile(fileName, html) {
+  ensureDir(DIST);
+  fs.writeFileSync(path.join(DIST, fileName), applyBasePath(html), "utf8");
 }
 
 /* 1. SALARY */
@@ -1476,6 +1515,142 @@ function buildHomePage() {
   );
 }
 
+function buildTrustPages() {
+  const repoIssueUrl = DATA.repoUrl ? `${DATA.repoUrl}/issues` : "https://github.com";
+
+  writePage(
+    "/about/",
+    renderLayout({
+      routePath: "/about/",
+      title: "사이트 소개 · 산출 기준 및 면책고지",
+      description: `${DATA.siteName}의 ${DATA.year}년 한국 세금·금융·근로 계산기 9종 산출 기준, 공식 참고 출처 및 면책고지 안내.`,
+      activeNav: "",
+      priority: "0.5",
+      breadcrumbs: [
+        { label: "홈", href: "/" },
+        { label: "사이트 소개", href: "/about/" }
+      ],
+      bodyHtml: `
+        <header class="page-head">
+          <div class="page-head-row">
+            <h1>${escapeHtml(DATA.siteName)} 소개 · 면책고지</h1>
+            <span class="meta-tag">${DATA.year}년 세율·요율 기준</span>
+          </div>
+          <p class="subtitle">복잡한 한국 세금·4대보험·부동산·근로 급여 계산을 누구나 빠르고 투명하게 확인할 수 있도록 만든 무료 계산기 허브입니다.</p>
+        </header>
+
+        <article class="prose-sheet">
+          <h2>1. 제공 중인 9종 계산기</h2>
+          <ul>
+            <li><a href="/salary/">연봉 실수령액 계산기</a> — 4대보험(국민연금·건강보험·장기요양보험·고용보험) 및 근로소득세·지방소득세 추정</li>
+            <li><a href="/freelancer/">프리랜서 3.3% 계산기</a> — 사업소득 원천징수(소득세 3% + 지방소득세 0.3%) 정산 및 세후→세전 역산</li>
+            <li><a href="/severance/">퇴직금 계산기</a> — 계속근로기간 기준 법정 퇴직금 및 근속연수공제 반영 퇴직소득세 추정</li>
+            <li><a href="/unemployment/">실업급여 계산기</a> — 연령·피보험기간별 소정급여일수 및 상·하한액 적용 구직급여 산출</li>
+            <li><a href="/weekly-holiday/">주휴수당 계산기</a> — 주 15시간 이상 근로 기준 주휴수당 및 월 환산 급여 계산</li>
+            <li><a href="/stock-tax/">해외주식 양도소득세 계산기</a> — 연간 250만 원 기본공제 및 손익통산 후 22%(양도세 20%+지방세 2%) 산출</li>
+            <li><a href="/real-estate/">주택 취등록세 계산기</a> — 6억·9억 구간별 세율, 다주택 중과, 전용 85㎡ 초과 농어촌특별세 반영</li>
+            <li><a href="/gift-tax/">증여세 계산기</a> — 수증자 관계별 10년 공제 한도, 누진세율, 자진신고 3% 세액공제 반영</li>
+            <li><a href="/jeonse/">전월세 전환율 계산기</a> — 보증금 차액과 전환율 기준 적정 월세 산출</li>
+          </ul>
+
+          <h2>2. 세율·요율 공식 참고 출처</h2>
+          <p>모든 계산 로직은 대한민국 관계 기관의 공개 법령과 고시 자료를 바탕으로 주기적으로 점검합니다.</p>
+          <ul>
+            <li>소득세·양도소득세·증여세: <a href="https://www.hometax.go.kr" target="_blank" rel="noopener noreferrer">국세청 홈택스</a></li>
+            <li>지방세(취득세·지방교육세): <a href="https://www.wetax.go.kr" target="_blank" rel="noopener noreferrer">위택스(WeTax)</a></li>
+            <li>실업급여·최저임금·근로기준: <a href="https://www.work24.go.kr" target="_blank" rel="noopener noreferrer">고용24</a> 및 <a href="https://www.moel.go.kr" target="_blank" rel="noopener noreferrer">고용노동부</a></li>
+            <li>금융상품·임대차 참고: <a href="https://fine.fss.or.kr" target="_blank" rel="noopener noreferrer">금융감독원 파인</a> 및 <a href="https://www.khug.or.kr" target="_blank" rel="noopener noreferrer">주택도시보증공사(HUG)</a></li>
+          </ul>
+
+          <h2>3. 면책고지 (Disclaimer)</h2>
+          <p>${escapeHtml(DATA.siteName)}의 모든 계산 결과는 일반적인 법정 요율을 적용한 <strong>참고용 추정치</strong>입니다. 비과세 항목 구성, 부양가족·자녀 세액공제, 생애최초·신혼부부 감면, 조정대상지역 여부, 과거 10년 내 합산 증여 이력 등 개인별 특수 조건에 따라 실제 신고·납부 세액과 차이가 발생할 수 있습니다. 실제 세무 신고나 계약 결정 전에는 반드시 관할 세무서, 홈택스 모의계산 또는 세무 전문가의 확인을 받으시기 바랍니다.</p>
+
+          <h2>4. 오류 제보 및 문의</h2>
+          <p>계산 공식 오류 제보, 신규 계산기 제안, 세율 개정 반영 요청은 <a href="${escapeHtml(repoIssueUrl)}" target="_blank" rel="noopener noreferrer">GitHub Issues</a>를 통해 남겨주시면 확인 후 반영합니다.</p>
+        </article>
+      `
+    })
+  );
+
+  writePage(
+    "/privacy/",
+    renderLayout({
+      routePath: "/privacy/",
+      title: "개인정보처리방침",
+      description: `${DATA.siteName} 개인정보처리방침. 브라우저 내 클라이언트 계산 방식 및 쿠키·광고·접속 통계 안내.`,
+      activeNav: "",
+      priority: "0.4",
+      breadcrumbs: [
+        { label: "홈", href: "/" },
+        { label: "개인정보처리방침", href: "/privacy/" }
+      ],
+      bodyHtml: `
+        <header class="page-head">
+          <div class="page-head-row">
+            <h1>개인정보처리방침</h1>
+            <span class="meta-tag">시행일: ${DATA.updatedAt}</span>
+          </div>
+          <p class="subtitle">${escapeHtml(DATA.siteName)}는 이용자의 급여·자산·세금 입력 정보를 서버로 전송하거나 저장하지 않습니다.</p>
+        </header>
+
+        <article class="prose-sheet">
+          <h2>1. 개인정보의 수집 및 처리 방식</h2>
+          <p>${escapeHtml(DATA.siteName)}는 회원가입 없이 누구나 이용할 수 있는 정적 웹 계산기 서비스입니다. 이용자가 연봉, 보증금, 증여액, 주식 수익 등 계산기에 입력하는 모든 수치는 <strong>이용자의 웹 브라우저 내부(클라이언트 측 JavaScript)에서만 즉시 계산</strong>되며, 외부 서버로 전송·저장·수집되지 않습니다.</p>
+
+          <h2>2. 쿠키(Cookie) 및 자동 수집 정보</h2>
+          <p>본 사이트는 서비스 품질 개선 및 무료 운영 유지를 위해 향후 아래와 같은 제3자 도구를 사용할 수 있습니다.</p>
+          <ul>
+            <li><strong>웹 접속 통계 (Google Analytics 등)</strong>: 방문 페이지, 체류 시간, 기기 유형 등 개인을 직접 식별하지 않는 익명화된 트래픽 통계 분석</li>
+            <li><strong>광고 서비스 (Google AdSense 등)</strong>: 제3자 광고 사업자가 이용자의 이전 방문 기록을 바탕으로 맞춤형 광고를 제공하기 위해 쿠키를 사용할 수 있습니다.</li>
+          </ul>
+          <p>이용자는 브라우저 설정에서 쿠키 저장을 거부하거나, <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer">Google 광고 설정</a>에서 맞춤형 광고를 비활성화할 수 있습니다.</p>
+
+          <h2>3. 외부 링크에 대한 책임</h2>
+          <p>본 사이트에는 국세청 홈택스, 위택스, 고용24 등 외부 공식 기관 또는 제휴 안내 페이지로 연결되는 링크가 포함되어 있습니다. 외부 사이트 이동 후의 개인정보 처리는 해당 사이트의 개인정보처리방침을 따릅니다.</p>
+
+          <h2>4. 개인정보 보호 문의</h2>
+          <p>본 방침에 관한 문의 사항은 <a href="${escapeHtml(repoIssueUrl)}" target="_blank" rel="noopener noreferrer">GitHub 저장소 문의 페이지</a>를 통해 접수할 수 있으며, 법령 또는 서비스 변경에 따라 방침이 개정될 경우 본 페이지를 통해 공지합니다.</p>
+        </article>
+      `
+    })
+  );
+
+  writeRootFile(
+    "404.html",
+    renderLayout({
+      routePath: "/404.html",
+      title: "페이지를 찾을 수 없습니다 (404)",
+      description: "요청하신 페이지를 찾을 수 없습니다. 셈노트 9종 계산기 목록으로 이동해 주세요.",
+      activeNav: "",
+      includeInSitemap: false,
+      breadcrumbs: [{ label: "홈", href: "/" }, { label: "404", href: "/404.html" }],
+      bodyHtml: `
+        <section class="not-found-box">
+          <div class="not-found-code num">404</div>
+          <h1>요청하신 페이지를 찾을 수 없습니다</h1>
+          <p class="subtitle">주소가 변경되었거나 잘못 입력된 경로입니다. 아래 버튼 또는 상단 메뉴에서 원하시는 계산기를 선택해 주세요.</p>
+          <a class="not-found-cta" href="/">셈노트 홈으로 이동 →</a>
+        </section>
+
+        <section class="section-block">
+          <h2>전체 계산기 바로가기</h2>
+          <div class="link-matrix">
+            <a class="matrix-pill" href="/salary/">연봉 실수령액</a>
+            <a class="matrix-pill" href="/freelancer/">프리랜서 3.3%</a>
+            <a class="matrix-pill" href="/severance/">퇴직금</a>
+            <a class="matrix-pill" href="/unemployment/">실업급여</a>
+            <a class="matrix-pill" href="/weekly-holiday/">주휴수당</a>
+            <a class="matrix-pill" href="/stock-tax/">해외주식 양도세</a>
+            <a class="matrix-pill" href="/real-estate/">주택 취등록세</a>
+            <a class="matrix-pill" href="/gift-tax/">증여세</a>
+            <a class="matrix-pill" href="/jeonse/">전월세 전환율</a>
+          </div>
+        </section>
+      `
+    })
+  );
+}
+
 function writeSeoFiles() {
   const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -1521,6 +1696,7 @@ function main() {
   buildUnemploymentPages();
   buildWeeklyHolidayPages();
   buildGiftTaxPages();
+  buildTrustPages();
   writeSeoFiles();
   const elapsed = Date.now() - start;
   console.log(`Built ${GENERATED_URLS.length} static SEO pages in ${elapsed}ms -> ${DIST}`);
