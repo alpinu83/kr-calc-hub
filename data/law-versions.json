@@ -190,16 +190,6 @@
       "status": "",
       "currentEffectiveDate": "20270101",
       "scope": "주휴수당·실업급여 하한액(최저시급)"
-    },
-    "pension-income-cap": {
-      "name": "2026년도 공무원 전체의 기준소득월액 평균액 고시",
-      "serial": "2100000278474",
-      "promulgatedDate": "20260430",
-      "effectiveDate": "20260501",
-      "amendmentType": "전부개정",
-      "status": "",
-      "currentEffectiveDate": "20260501",
-      "scope": "국민연금 기준소득월액 상·하한"
     }
   }
 }
