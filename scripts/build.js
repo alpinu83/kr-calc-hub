@@ -42,7 +42,7 @@ function cleanDist() {
 }
 
 function copyAssets() {
-  const files = ["styles.css", "wage-tax-table-2026.js", "calculators.js", "app.js", "favicon.svg", "og-image.svg"];
+  const files = ["styles.css", "wage-tax-table-2026.js", "calculators.js", "app.js", "favicon.svg", "og-image.svg", "profile.jpg"];
   for (const file of files) {
     fs.copyFileSync(path.join(ROOT, "src", file), path.join(DIST, "assets", file));
   }
