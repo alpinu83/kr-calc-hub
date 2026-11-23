@@ -58,6 +58,7 @@ function verify() {
     "about/index.html",
     "privacy/index.html",
     "assets/styles.css",
+    "assets/wage-tax-table-2026.js",
     "assets/calculators.js",
     "assets/app.js",
     "assets/favicon.svg",

@@ -23,7 +23,9 @@ const RELATION_LABELS = {
   spouse: "배우자",
   adultChild: "성년 자녀",
   minorChild: "미성년 자녀",
-  parent: "부모(직계존속)",
+  adultGrandchild: "성년 손자녀",
+  minorGrandchild: "미성년 손자녀",
+  parent: "부모(자녀가 증여)",
   relative: "기타 친족",
   other: "타인"
 };
@@ -40,7 +42,7 @@ function cleanDist() {
 }
 
 function copyAssets() {
-  const files = ["styles.css", "calculators.js", "app.js", "favicon.svg", "og-image.svg"];
+  const files = ["styles.css", "wage-tax-table-2026.js", "calculators.js", "app.js", "favicon.svg", "og-image.svg"];
   for (const file of files) {
     fs.copyFileSync(path.join(ROOT, "src", file), path.join(DIST, "assets", file));
   }
@@ -314,6 +316,7 @@ function renderLayout({
     </div>
   </footer>
 
+  <script src="/assets/wage-tax-table-2026.js"></script>
   <script src="/assets/calculators.js"></script>
   <script src="/assets/app.js"></script>
 </body>
@@ -366,15 +369,31 @@ function renderSalaryWidget(defaultManwon) {
           </div>
         </div>
         <div class="field">
-          <label for="salary-deps">부양가족 수 <span class="field-hint">본인 포함</span></label>
+          <label for="salary-deps">공제대상가족 수 <span class="field-hint">본인·배우자 포함</span></label>
           <select id="salary-deps">
-            <option value="1" selected>1명 (본인)</option>
-            <option value="2">2명</option>
-            <option value="3">3명</option>
-            <option value="4">4명</option>
-            <option value="5">5명 이상</option>
+            ${Array.from({ length: 11 }, (_, i) => `<option value="${i + 1}"${i === 0 ? " selected" : ""}>${i + 1}명${i === 0 ? " (본인)" : ""}</option>`).join("")}
           </select>
         </div>
+        <div class="field">
+          <label for="salary-children">8세 이상 20세 이하 자녀 수 <span class="field-hint">가족 수에 포함된 인원</span></label>
+          <select id="salary-children">
+            <option value="0" selected>없음</option>
+            <option value="1">1명 (월 20,830원 차감)</option>
+            <option value="2">2명 (월 45,830원 차감)</option>
+            <option value="3">3명</option>
+            <option value="4">4명</option>
+            <option value="5">5명</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="salary-ratio">원천징수 비율 <span class="field-hint">근로자 선택</span></label>
+          <select id="salary-ratio">
+            <option value="0.8">80%</option>
+            <option value="1" selected>100% (기본)</option>
+            <option value="1.2">120%</option>
+          </select>
+        </div>
+        <p class="calc-note">근로소득세는 소득세법 시행령 별표2 근로소득 간이세액표(2026. 2. 27. 개정) 원표를 그대로 조회합니다. 국민연금 기준소득월액 상한은 2026년 7월~2027년 6월 적용분(659만 원)입니다.</p>
       </div>
 
       <div class="sheet receipt">
@@ -382,7 +401,8 @@ function renderSalaryWidget(defaultManwon) {
         <div class="result-summary">
           <div class="result-label">예상 월 실수령액</div>
           <div class="result-main num" id="res-monthly-net">${Calc.formatWon(res.monthlyNet)}</div>
-          <div class="result-sub num" id="res-salary-sub">연 실수령액 약 ${Calc.formatWon(res.annualNet)} · 공제율 ${Calc.formatPercent(res.effectiveDeductionRate, 1)}</div>
+          <div class="result-sub num" id="res-salary-sub">월 실수령 × 12 = 연 ${Calc.formatWon(res.annualNet)} · 공제율 ${Calc.formatPercent(res.effectiveDeductionRate, 1)}</div>
+          <p class="result-note" id="res-salary-note" hidden></p>
           <div class="ratio-wrap" aria-hidden="true">
             <div class="ratio-bar">
               <div class="ratio-net" id="bar-net" style="width:${(res.monthlyGross > 0 ? (res.monthlyNet / res.monthlyGross) * 100 : 100).toFixed(1)}%"></div>
@@ -401,7 +421,7 @@ function renderSalaryWidget(defaultManwon) {
             <tr><th>건강보험 (${(DATA.salary.healthInsuranceRate * 100).toFixed(3)}%)</th><td id="res-health">${Calc.formatWon(res.healthInsurance)}</td></tr>
             <tr><th>장기요양보험 (건보의 ${(DATA.salary.longTermCareRateOfHealth * 100).toFixed(2)}%)</th><td id="res-care">${Calc.formatWon(res.longTermCare)}</td></tr>
             <tr><th>고용보험 (${(DATA.salary.employmentInsuranceRate * 100).toFixed(1)}%)</th><td id="res-employment">${Calc.formatWon(res.employmentInsurance)}</td></tr>
-            <tr><th>근로소득세</th><td id="res-income-tax">${Calc.formatWon(res.incomeTax)}</td></tr>
+            <tr><th>근로소득세 (간이세액표)</th><td id="res-income-tax">${Calc.formatWon(res.incomeTax)}</td></tr>
             <tr><th>지방소득세 (10%)</th><td id="res-local-tax">${Calc.formatWon(res.localIncomeTax)}</td></tr>
             <tr class="total-row"><th>월 공제액 합계</th><td id="res-total-deduction">-${Calc.formatWon(res.totalDeduction)}</td></tr>
           </tbody>
@@ -428,7 +448,15 @@ function buildSalaryPages() {
   const mainFaqs = [
     {
       q: "2026년 연봉 실수령액은 어떤 기준으로 계산되나요?",
-      a: `월 급여에서 비과세 식대(기본 20만 원)를 제외한 과세 급여를 기준으로 2026년 확정 요율인 국민연금(${(DATA.salary.nationalPensionRate * 100).toFixed(2)}%, 기준소득월액 41만~659만 원), 건강보험(${(DATA.salary.healthInsuranceRate * 100).toFixed(3)}%), 장기요양보험(건강보험료의 ${(DATA.salary.longTermCareRateOfHealth * 100).toFixed(2)}%), 고용보험(${(DATA.salary.employmentInsuranceRate * 100).toFixed(1)}%), 근로소득세 및 지방소득세를 공제해 산출합니다.`
+      a: `월 급여에서 비과세 식대(기본 20만 원)를 제외한 과세 급여를 기준으로 국민연금(${(DATA.salary.nationalPensionRate * 100).toFixed(2)}%, 기준소득월액 41만~659만 원·2026년 6월까지는 40만~637만 원), 건강보험(${(DATA.salary.healthInsuranceRate * 100).toFixed(3)}%), 장기요양보험(건강보험료의 ${(DATA.salary.longTermCareRateOfHealth * 100).toFixed(2)}%), 고용보험(${(DATA.salary.employmentInsuranceRate * 100).toFixed(1)}%)을 공제하고, 근로소득세는 소득세법 시행령 별표2 근로소득 간이세액표(2026. 2. 27. 개정) 원표에서 월급여·공제대상가족 수로 조회합니다. 지방소득세는 근로소득세의 10%입니다.`
+    },
+    {
+      q: "자녀가 있으면 매달 떼는 세금이 줄어드나요?",
+      a: "공제대상가족 중 8세 이상 20세 이하 자녀가 있으면 2026년 3월 이후 급여부터 간이세액표 세액에서 자녀 1명 20,830원, 2명 45,830원, 3명 이상은 2명 초과 1명당 33,330원을 추가로 뺍니다."
+    },
+    {
+      q: "월 실수령액 × 12가 실제 연간 수령액과 같나요?",
+      a: "아닙니다. 매달 떼는 세금은 간이세액표에 따른 선납분이고 최종 세액은 연말정산에서 확정됩니다. 국민연금 상한도 매년 7월 바뀌므로 상반기·하반기 공제액이 다를 수 있습니다."
     },
     {
       q: "비과세 식대를 늘리면 실수령액이 달라지나요?",
@@ -452,7 +480,7 @@ function buildSalaryPages() {
             <h1>${DATA.year} 연봉 실수령액 계산기</h1>
             <span class="meta-tag">기준 ${DATA.updatedAt}</span>
           </div>
-          <p class="subtitle">연봉, 비과세액, 부양가족 수에 따른 4대보험·소득세 공제 내역과 월 실수령액을 계산합니다.</p>
+          <p class="subtitle">연봉, 비과세액, 공제대상가족·8~20세 자녀 수에 따른 4대보험과 간이세액표 기준 근로소득세, 월 실수령액을 계산합니다.</p>
         </header>
         ${renderSalaryWidget(5000)}
         ${renderAdSlot("calcMid")}
@@ -471,7 +499,7 @@ function buildSalaryPages() {
     const faqs = [
       {
         q: `연봉 ${label}의 월 실수령액은 얼마인가요?`,
-        a: `${DATA.year}년 기준(부양가족 1명, 비과세 식대 20만 원) 세전 월급 ${Calc.formatWon(res.monthlyGross)}에서 ${Calc.formatWon(res.totalDeduction)}을 공제한 약 ${Calc.formatWon(res.monthlyNet)}입니다.`
+        a: `${DATA.year}년 기준(공제대상가족 1명, 비과세 식대 20만 원, 간이세액표 100%) 세전 월급 ${Calc.formatWon(res.monthlyGross)}에서 ${Calc.formatWon(res.totalDeduction)}을 공제한 약 ${Calc.formatWon(res.monthlyNet)}입니다.`
       }
     ];
 
@@ -495,7 +523,7 @@ function buildSalaryPages() {
               <h1>연봉 ${label} 실수령액</h1>
               <span class="meta-tag">${DATA.year}년 기준</span>
             </div>
-            <p class="subtitle">부양가족 1명·비과세 20만 원 기준 예상 월 실수령액은 <strong>${Calc.formatWon(res.monthlyNet)}</strong>입니다.</p>
+            <p class="subtitle">공제대상가족 1명·비과세 20만 원 기준 예상 월 실수령액은 <strong>${Calc.formatWon(res.monthlyNet)}</strong>입니다.</p>
           </header>
           ${renderSalaryWidget(manwon)}
           ${renderAdSlot("pseoMid")}
@@ -550,7 +578,7 @@ function renderFreelancerWidget(defaultManwon) {
           <tbody>
             <tr><th>계약 금액 (세전)</th><td id="res-free-gross">${Calc.formatWon(res.gross)}</td></tr>
             <tr><th>사업소득세 (3.0%)</th><td id="res-free-income">${Calc.formatWon(res.incomeTax)}</td></tr>
-            <tr><th>지방소득세 (0.3%)</th><td id="res-free-local">${Calc.formatWon(res.localTax)}</td></tr>
+            <tr><th>지방소득세 (소득세의 10%)</th><td id="res-free-local">${Calc.formatWon(res.localTax)}</td></tr>
             <tr class="total-row"><th>원천징수 세액 합계</th><td id="res-free-total-tax">-${Calc.formatWon(res.totalTax)}</td></tr>
             <tr><th>최종 실수령액</th><td id="res-free-net">${Calc.formatWon(res.net)}</td></tr>
           </tbody>
@@ -577,7 +605,15 @@ function buildFreelancerPages() {
   const mainFaqs = [
     {
       q: "프리랜서 3.3%는 어떻게 구성되나요?",
-      a: "사업소득세 3.0%와 지방소득세 0.3%를 합산한 3.3%를 지급처가 원천징수하고 나머지 96.7%를 지급합니다."
+      a: "사업소득세 3.0%와 지방소득세(소득세의 10%, 0.3%)를 합산한 3.3%를 지급처가 원천징수하고 나머지 96.7%를 지급합니다. 각 세액의 10원 미만은 절사합니다."
+    },
+    {
+      q: "3.3% 떼면 세금이 끝나나요? 5월에 환급받나요?",
+      a: "3.3%는 미리 낸 세금(기납부세액)일 뿐이고, 다음 해 5월 종합소득세 확정신고에서 총수입금액·필요경비·공제를 반영해 최종 세액을 확정합니다. 결정세액이 기납부세액보다 적으면 환급, 많으면 추가 납부입니다. 수입이 크거나 다른 소득이 있으면 추가 납부가 나올 수 있습니다."
+    },
+    {
+      q: "강연료·원고료도 3.3%인가요?",
+      a: "계속·반복적인 인적용역은 사업소득 3.3%이지만, 일시적인 강연료·심사료 등은 기타소득으로 분류돼 필요경비 60% 공제 후 22%(지급액의 8.8%)를 원천징수합니다. 근로자처럼 지휘·감독을 받으며 일한다면 실질적으로 근로소득(4대보험·퇴직금 대상)일 수 있습니다."
     }
   ];
 
@@ -675,6 +711,31 @@ function renderStockTaxWidget(defaultProfitManwon) {
             <span class="input-unit">만 원</span>
           </div>
         </div>
+        <details class="calc-details">
+          <summary>2026 국내시장복귀계좌(RIA) 감면 적용</summary>
+          <div class="field">
+            <label for="stock-ria-gain">RIA로 매도한 양도차익 <span class="field-hint">2025.12.23 이전 보유분</span></label>
+            <div class="input-wrap"><input id="stock-ria-gain" type="number" min="0" step="50" value="0" /><span class="input-unit">만 원</span></div>
+          </div>
+          <div class="field">
+            <label for="stock-ria-period">매도 결제 완료일 <span class="field-hint">주문일 아님</span></label>
+            <select id="stock-ria-period">
+              <option value="" selected>RIA 미적용</option>
+              <option value="may">2026.5.31까지 (100% 공제)</option>
+              <option value="jul">2026.6.1~7.31 (80% 공제)</option>
+              <option value="dec">2026.8.1~12.31 (50% 공제)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="stock-ria-proceeds">RIA 납입액(매도대금) <span class="field-hint">한도 5,000만 원</span></label>
+            <div class="input-wrap"><input id="stock-ria-proceeds" type="number" min="0" max="5000" step="100" value="0" /><span class="input-unit">만 원</span></div>
+          </div>
+          <div class="field">
+            <label for="stock-ria-netbuy">RIA 외 계좌 해외주식 등 순매수액 <span class="field-hint">공제율 비례 축소</span></label>
+            <div class="input-wrap"><input id="stock-ria-netbuy" type="number" min="0" step="100" value="0" /><span class="input-unit">만 원</span></div>
+          </div>
+          <p class="calc-note">조세특례제한법 제91조의26: RIA로 판 매도대금을 1년간 국내 주식·주식형 펀드 등에 유지해야 합니다. 순매수 축소는 시점별 가중치를 동일하게 본 간이 계산입니다.</p>
+        </details>
       </div>
 
       <div class="sheet receipt">
@@ -687,10 +748,11 @@ function renderStockTaxWidget(defaultProfitManwon) {
         <table class="breakdown-table">
           <tbody>
             <tr><th>손익통산 후 순수익</th><td id="res-stock-net-profit">${Calc.formatWon(res.netProfit)}</td></tr>
+            <tr><th>RIA 소득공제</th><td id="res-stock-ria">-${Calc.formatWon(res.riaDeduction)}</td></tr>
             <tr><th>연간 기본공제</th><td id="res-stock-deduction">-${Calc.formatWon(res.deductionApplied)}</td></tr>
             <tr><th>과세표준</th><td id="res-stock-base">${Calc.formatWon(res.taxableBase)}</td></tr>
             <tr><th>양도소득세 (20%)</th><td id="res-stock-cap-tax">${Calc.formatWon(res.capitalGainsTax)}</td></tr>
-            <tr><th>지방소득세 (2%)</th><td id="res-stock-local-tax">${Calc.formatWon(res.localTax)}</td></tr>
+            <tr><th>지방소득세 (양도세의 10%)</th><td id="res-stock-local-tax">${Calc.formatWon(res.localTax)}</td></tr>
             <tr class="total-row"><th>세후 최종 순수익</th><td id="res-stock-after">${Calc.formatWon(res.afterTaxProfit)}</td></tr>
           </tbody>
         </table>
@@ -713,24 +775,49 @@ function buildStockTaxPages() {
     </section>
   `;
 
+  const stockFaqs = [
+    {
+      q: "해외주식 양도세는 어떻게 계산하나요?",
+      a: "1년간(1.1~12.31, 결제일 기준) 실현한 양도차익에서 손실을 통산하고 기본공제 250만 원을 빼 양도소득세 20%와 지방소득세(양도세의 10%)를 냅니다. 취득가액과 양도가액은 각각 취득일·양도일의 기준환율로 원화 환산하므로 환차익도 과세되고, 증권거래 수수료 등은 필요경비로 빠집니다."
+    },
+    {
+      q: "국내주식 손실과도 통산되나요?",
+      a: "양도소득세 과세대상인 국내주식(대주주 주식·비상장주식 등)은 해외주식과 같은 그룹으로 손익이 통산되고, 기본공제 250만 원도 그룹 전체에서 한 번만 적용됩니다. 소액주주의 비과세 상장주식 손익은 통산 대상이 아닙니다."
+    },
+    {
+      q: "2026년 RIA(국내시장복귀계좌) 감면은 무엇인가요?",
+      a: "2025년 12월 23일 이전부터 보유한 해외주식을 RIA 계좌에서 팔고 매도대금을 1년간 국내 주식 등에 투자하면, 매도 결제일에 따라 양도소득의 100%(5월 말까지), 80%(6~7월), 50%(8~12월)를 공제합니다(조세특례제한법 제91조의26, 납입한도 1인 5,000만 원). RIA 외 계좌에서 해외주식을 순매수하면 공제율이 줄어듭니다."
+    },
+    {
+      q: "수익이 250만 원 이하이면 신고하지 않아도 되나요?",
+      a: "양도소득 확정신고는 과세표준이 없거나 결손이 있어도 적용되는 것이 원칙(소득세법 제110조)이지만, 납부할 세액이 없으면 무신고 가산세는 사실상 발생하지 않습니다. 다음 해 5월 1~31일에 홈택스에서 신고합니다."
+    },
+    {
+      q: "가족에게 주식을 증여한 뒤 팔면 양도세가 줄어드나요?",
+      a: "2025년부터 배우자·직계존비속에게 증여받은 주식을 1년 이내에 양도하면 증여자의 취득가액으로 양도차익을 계산(이월과세)하므로 절세 효과가 없습니다."
+    }
+  ];
+
   writePage(
     "/stock-tax/",
     renderLayout({
       routePath: "/stock-tax/",
       title: `${DATA.year} 해외주식 양도소득세 계산기`,
-      description: "해외주식 연간 250만 원 기본공제와 손익통산을 반영한 22% 양도소득세 계산기.",
+      description: "해외주식 연간 250만 원 기본공제, 손익통산, 2026 국내시장복귀계좌(RIA) 감면을 반영한 22% 양도소득세 계산기.",
       activeNav: "stock-tax",
       priority: "0.9",
       breadcrumbs: [{ label: "홈", href: "/" }, { label: "해외주식 양도세", href: "/stock-tax/" }],
+      faqs: stockFaqs,
       bodyHtml: `
         <header class="page-head">
           <h1>해외주식 양도소득세 계산기</h1>
-          <p class="subtitle">연간 기본공제 250만 원과 손익통산을 적용한 양도세(20%) + 지방소득세(2%)를 산출합니다.</p>
+          <p class="subtitle">연간 기본공제 250만 원과 손익통산, 2026년 RIA 감면을 적용한 양도세(20%) + 지방소득세(양도세의 10%)를 산출합니다.</p>
         </header>
         ${renderStockTaxWidget(1000)}
         ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("stockTax")}
         ${matrixLinks(null)}
+        ${renderFaqSection(stockFaqs)}
       `
     })
   );
@@ -756,7 +843,7 @@ function buildStockTaxPages() {
         bodyHtml: `
           <header class="page-head">
             <h1>해외주식 수익 ${label} 양도소득세</h1>
-            <p class="subtitle">기본공제 250만 원 적용 시 납부 예상 세액은 <strong>${Calc.formatWon(res.totalTax)}</strong>입니다.</p>
+            <p class="subtitle">기본공제 250만 원 적용 시 납부 예상 세액은 <strong>${Calc.formatWon(res.totalTax)}</strong>입니다. (RIA 감면 미적용 기준)</p>
           </header>
           ${renderStockTaxWidget(manwon)}
           ${renderAffiliateCard("stockTax")}
@@ -789,19 +876,38 @@ function renderRealEstateWidget(defaultEok) {
           </div>
         </div>
         <div class="field">
-          <label for="re-houses">취득 후 보유 주택 수</label>
+          <label for="re-houses">취득 후 1세대 주택 수 <span class="field-hint">입주권·분양권·주거용 오피스텔 포함</span></label>
           <select id="re-houses">
-            <option value="1" selected>1주택 (1~3%)</option>
-            <option value="2">2주택 (조정지역 중과 참고 8%)</option>
-            <option value="3">3주택 이상 (중과 참고 12%)</option>
+            <option value="1" selected>1주택</option>
+            <option value="2">2주택</option>
+            <option value="3">3주택</option>
+            <option value="4">4주택 이상</option>
           </select>
         </div>
         <div class="field">
           <label class="checkbox-row">
+            <input id="re-adjusted" type="checkbox" />
+            <span>취득 주택이 조정대상지역 (서울 전역·과천·광명·하남·의왕·성남 분당·수정·중원·수원 영통·장안·팔달·안양 동안·용인 수지·기흥·화성 동탄·구리)</span>
+          </label>
+          <label class="checkbox-row">
+            <input id="re-temp2" type="checkbox" />
+            <span>일시적 2주택 (종전 주택을 기한 내 처분 예정)</span>
+          </label>
+          <label class="checkbox-row">
             <input id="re-over85" type="checkbox" />
-            <span>전용면적 85㎡ 초과 (농어촌특별세 0.2%)</span>
+            <span>전용면적 85㎡ 초과 (농어촌특별세 부과)</span>
           </label>
         </div>
+        <div class="field">
+          <label for="re-relief">취득세 감면 <span class="field-hint">12억 원 이하·1주택</span></label>
+          <select id="re-relief">
+            <option value="none" selected>해당 없음</option>
+            <option value="first">생애최초 주택 구입 (최대 200만 원)</option>
+            <option value="firstSmall">생애최초 · 소형주택/인구감소지역 (최대 300만 원)</option>
+            <option value="birth">출산·양육 주택 (최대 500만 원)</option>
+          </select>
+        </div>
+        <p class="calc-note">중과세율(지방세법 제13조의2): 조정대상지역 2주택 8%·3주택 이상 12%, 비조정 3주택 8%·4주택 이상 12%. 조정대상지역은 2026년 7월 1일 기준이며 수시 변경되므로 계약 전 국토교통부 고시를 확인하세요. 수도권 공시가격 1억 원 이하 주택 등은 중과에서 제외됩니다.</p>
       </div>
 
       <div class="sheet receipt">
@@ -809,15 +915,18 @@ function renderRealEstateWidget(defaultEok) {
         <div class="result-summary">
           <div class="result-label">총 납부 세액</div>
           <div class="result-main num" id="res-re-total">${Calc.formatWon(res.totalTax)}</div>
-          <div class="result-sub num" id="res-re-sub">총 실효세율 ${Calc.formatPercent(res.totalRate, 2)} (취득세율 ${Calc.formatPercent(res.acquisitionRate, 2)})</div>
+          <div class="result-sub num" id="res-re-sub">표준세율 · 총 실효세율 ${Calc.formatPercent(res.totalRate, 2)} (취득세율 ${Calc.formatPercent(res.acquisitionRate, 2)})</div>
+          <p class="result-note" id="res-re-note" hidden></p>
         </div>
         <table class="breakdown-table">
           <tbody>
             <tr><th>주택 매매가</th><td id="res-re-price">${Calc.formatWon(res.price)}</td></tr>
-            <tr><th>취득세</th><td id="res-re-acq">${Calc.formatWon(res.acquisitionTax)}</td></tr>
+            <tr><th>취득세 (감면 전)</th><td id="res-re-acq-before">${Calc.formatWon(res.acquisitionTaxBeforeRelief)}</td></tr>
+            <tr><th>취득세 감면</th><td id="res-re-relief">-${Calc.formatWon(res.reliefAmount)}</td></tr>
+            <tr><th>납부 취득세</th><td id="res-re-acq">${Calc.formatWon(res.acquisitionTax)}</td></tr>
             <tr><th>지방교육세</th><td id="res-re-edu">${Calc.formatWon(res.localEducationTax)}</td></tr>
             <tr><th>농어촌특별세</th><td id="res-re-rural">${Calc.formatWon(res.ruralSpecialTax)}</td></tr>
-            <tr class="total-row"><th>총 취등록세 합계</th><td id="res-re-sum">${Calc.formatWon(res.totalTax)}</td></tr>
+            <tr class="total-row"><th>총 납부세액 합계</th><td id="res-re-sum">${Calc.formatWon(res.totalTax)}</td></tr>
           </tbody>
         </table>
         <div class="result-actions">
@@ -830,6 +939,24 @@ function renderRealEstateWidget(defaultEok) {
 
 function buildRealEstatePages() {
   const list = DATA.pseo.realEstateEok;
+  const realEstateFaqs = [
+    {
+      q: "주택 취득세율은 어떻게 정해지나요?",
+      a: "유상 매매 표준세율은 취득가액 6억 원 이하 1%, 9억 원 초과 3%이고, 그 사이는 (취득가액 × 2/3억 원 − 3) × 1/100 산식(소수점 넷째자리)입니다. 지방교육세는 취득세율의 10%, 전용 85㎡ 초과 주택은 농어촌특별세 0.2%가 추가됩니다."
+    },
+    {
+      q: "2주택이면 무조건 8%인가요?",
+      a: "아닙니다. 조정대상지역의 주택을 취득해 2주택이 되는 경우(일시적 2주택 제외)만 8%이고, 비조정지역 주택을 취득해 2주택이 되면 1~3% 표준세율입니다. 3주택은 조정 12%·비조정 8%, 4주택 이상은 12%입니다."
+    },
+    {
+      q: "중과세가 되면 지방교육세·농어촌특별세는 얼마인가요?",
+      a: "중과 시 지방교육세는 취득가액의 0.4%로 고정되고, 전용 85㎡ 초과 주택의 농어촌특별세는 8% 중과 0.6%, 12% 중과 1.0%입니다."
+    },
+    {
+      q: "생애최초·출산 감면은 얼마인가요?",
+      a: "취득가액 12억 원 이하 주택을 2028년 12월 31일까지 살 때, 생애최초는 취득세 최대 200만 원(소형주택·인구감소지역 300만 원), 출산·양육 주택은 최대 500만 원을 감면합니다. 두 감면에 모두 해당하면 감면액이 큰 쪽 하나만 적용되고, 취득일부터 3년 안에 매각·증여·임대하면 추징됩니다."
+    }
+  ];
   const matrixLinks = (current) => `
     <section class="section-block">
       <h2>매매가별 주택 취등록세</h2>
@@ -844,19 +971,21 @@ function buildRealEstatePages() {
     renderLayout({
       routePath: "/real-estate/",
       title: `${DATA.year} 아파트·주택 취등록세 계산기`,
-      description: "주택 매매가, 보유 주택 수, 전용 85㎡ 여부에 따른 취등록세 계산기.",
+      description: "주택 매매가, 보유 주택 수, 조정대상지역·일시적 2주택 여부, 전용 85㎡, 생애최초·출산 감면을 반영한 주택 취득세 계산기.",
       activeNav: "real-estate",
       priority: "0.9",
       breadcrumbs: [{ label: "홈", href: "/" }, { label: "주택 취등록세", href: "/real-estate/" }],
+      faqs: realEstateFaqs,
       bodyHtml: `
         <header class="page-head">
           <h1>아파트·주택 취등록세 계산기</h1>
-          <p class="subtitle">6억·9억 구간별 취득세율과 지방교육세, 농어촌특별세를 계산합니다.</p>
+          <p class="subtitle">6억·9억 구간별 표준세율, 조정대상지역 다주택 중과, 지방교육세·농어촌특별세와 생애최초·출산 감면을 계산합니다.</p>
         </header>
         ${renderRealEstateWidget(6)}
         ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("realEstate")}
         ${matrixLinks(null)}
+        ${renderFaqSection(realEstateFaqs)}
       `
     })
   );
@@ -870,7 +999,7 @@ function buildRealEstatePages() {
       renderLayout({
         routePath: `/real-estate/${eok}-eok/`,
         title: `${eok}억 원 아파트 취등록세 (${Calc.formatWon(res.totalTax)})`,
-        description: `매매가 ${eok}억 원 1주택 기준 예상 취등록세는 ${Calc.formatWon(res.totalTax)}입니다.`,
+        description: `매매가 ${eok}억 원 1주택(전용 85㎡ 이하, 감면 미적용) 기준 예상 취득세·지방교육세 합계는 ${Calc.formatWon(res.totalTax)}입니다.`,
         activeNav: "real-estate",
         priority: "0.75",
         breadcrumbs: [
@@ -881,7 +1010,7 @@ function buildRealEstatePages() {
         bodyHtml: `
           <header class="page-head">
             <h1>매매가 ${eok}억 원 주택 취등록세</h1>
-            <p class="subtitle">1주택(전용 85㎡ 이하) 기준 총 납부 세액은 <strong>${Calc.formatWon(res.totalTax)}</strong>입니다.</p>
+            <p class="subtitle">1주택(전용 85㎡ 이하, 감면 미적용) 기준 총 납부 세액은 <strong>${Calc.formatWon(res.totalTax)}</strong>입니다. 다주택·감면은 아래 계산기에서 선택하세요.</p>
           </header>
           ${renderRealEstateWidget(eok)}
           ${renderAffiliateCard("realEstate")}
@@ -895,7 +1024,18 @@ function buildRealEstatePages() {
 
 /* 5. JEONSE */
 function buildJeonsePage() {
-  const res = Calc.calcJeonseToWolse(300000000, 100000000, DATA.jeonse.defaultConversionRate, DATA);
+  const res = Calc.calcJeonseToWolse(300000000, 100000000, undefined, DATA);
+  const cap = res.legalCapRate;
+  const jeonseFaqs = [
+    {
+      q: "전월세 전환율 법정 상한은 얼마인가요?",
+      a: `주택임대차보호법 시행령 제9조에 따라 연 10%와 한국은행 기준금리 + 연 2%p 중 낮은 비율입니다. ${DATA.jeonse.baseRateAsOf} 기준금리 ${res.baseRate.toFixed(2)}%를 적용하면 상한은 연 ${cap.toFixed(1)}%입니다.`
+    },
+    {
+      q: "신규 월세 계약에도 상한이 적용되나요?",
+      a: "법정 상한은 계약 기간 중이거나 계약을 갱신하면서 보증금의 전부 또는 일부를 월세로 바꾸는 경우에 적용됩니다. 새로운 임차인과 체결하는 신규 계약은 당사자 합의로 정하며, 시장 전환율은 한국부동산원 전월세전환율 통계를 참고하세요."
+    }
+  ];
   writePage(
     "/jeonse/",
     renderLayout({
@@ -905,10 +1045,11 @@ function buildJeonsePage() {
       activeNav: "jeonse",
       priority: "0.85",
       breadcrumbs: [{ label: "홈", href: "/" }, { label: "전월세 전환율", href: "/jeonse/" }],
+      faqs: jeonseFaqs,
       bodyHtml: `
         <header class="page-head">
           <h1>전월세 전환율 계산기</h1>
-          <p class="subtitle">전세 보증금과 월세 보증금 차액에 전환율을 적용해 적정 월세를 계산합니다.</p>
+          <p class="subtitle">전세 보증금과 월세 보증금 차액에 전환율을 적용해 월세를 계산하고, 법정 상한(기준금리 ${res.baseRate.toFixed(2)}% + 2%p = ${cap.toFixed(1)}%) 초과 여부를 확인합니다.</p>
         </header>
         <section class="calc-grid">
           <div class="sheet">
@@ -923,14 +1064,15 @@ function buildJeonsePage() {
             </div>
             <div class="field">
               <label for="jw-rate">적용 전환율</label>
-              <div class="input-wrap"><input id="jw-rate" type="number" min="0" max="20" step="0.1" value="${DATA.jeonse.defaultConversionRate}" /><span class="input-unit">%</span></div>
+              <div class="input-wrap"><input id="jw-rate" type="number" min="0" max="20" step="0.1" value="${cap}" /><span class="input-unit">%</span></div>
               <div class="preset-row" id="jw-rate-presets">
+                <button type="button" class="chip-btn" data-preset="${cap}">법정 상한 ${cap.toFixed(1)}%</button>
                 <button type="button" class="chip-btn" data-preset="4.0">4.0%</button>
                 <button type="button" class="chip-btn" data-preset="4.5">4.5%</button>
-                <button type="button" class="chip-btn" data-preset="5.0">5.0%</button>
-                <button type="button" class="chip-btn" data-preset="5.5">5.5%</button>
+                <button type="button" class="chip-btn" data-preset="6.0">6.0% (신규·시세 참고)</button>
               </div>
             </div>
+            <p class="calc-note">법정 상한은 계약 기간 중·갱신 시 전환에만 적용됩니다(주택임대차보호법 제7조의2). 기준금리 ${res.baseRate.toFixed(2)}%(${DATA.jeonse.baseRateAsOf}) 반영.</p>
           </div>
           <div class="sheet receipt">
             <h2 class="sheet-title">전환 월세 산출</h2>
@@ -938,17 +1080,20 @@ function buildJeonsePage() {
               <div class="result-label">예상 월세</div>
               <div class="result-main num" id="res-jw-monthly">${Calc.formatWon(res.monthlyRent)}</div>
               <div class="result-sub num" id="res-jw-sub">연간 월세 합계 ${Calc.formatWon(res.yearlyRent)} · 전환율 ${res.conversionRate.toFixed(1)}%</div>
+              <p class="result-note" id="res-jw-note" hidden></p>
             </div>
             <table class="breakdown-table">
               <tbody>
                 <tr><th>전환 대상 보증금 차액</th><td id="res-jw-diff">${Calc.formatWon(res.diffDeposit)}</td></tr>
                 <tr><th>연간 월세 총액</th><td id="res-jw-yearly">${Calc.formatWon(res.yearlyRent)}</td></tr>
+                <tr><th>법정 상한 적용 시</th><td id="res-jw-cap">${cap.toFixed(1)}% → 월 ${Calc.formatWon(res.capMonthlyRent)}</td></tr>
               </tbody>
             </table>
             <div class="result-actions"><button type="button" class="btn-ghost" id="copy-jw-btn">결과 복사</button></div>
           </div>
         </section>
         ${renderAffiliateCard("jeonse")}
+        ${renderFaqSection(jeonseFaqs)}
       `
     })
   );
@@ -972,24 +1117,51 @@ function renderSeveranceWidget(defaultMonthlyManwon, defaultYears) {
           </div>
         </div>
         <div class="field">
-          <label for="sev-years">근속연수 <span class="field-hint">1년 이상 지급</span></label>
+          <label for="sev-years">재직기간 <span class="field-hint">1년 이상 지급</span></label>
           <div class="input-wrap"><input id="sev-years" type="number" min="0" step="0.5" value="${defaultYears}" /><span class="input-unit">년</span></div>
         </div>
+        <details class="calc-details">
+          <summary>상여금·연차수당·3개월 일수·IRP 예외</summary>
+          <div class="field">
+            <label for="sev-bonus">직전 1년간 상여금 총액 <span class="field-hint">3/12 평균임금 산입</span></label>
+            <div class="input-wrap"><input id="sev-bonus" type="number" min="0" step="10" value="0" /><span class="input-unit">만 원</span></div>
+          </div>
+          <div class="field">
+            <label for="sev-leave">직전 1년간 연차수당 <span class="field-hint">3/12 산입</span></label>
+            <div class="input-wrap"><input id="sev-leave" type="number" min="0" step="10" value="0" /><span class="input-unit">만 원</span></div>
+          </div>
+          <div class="field">
+            <label for="sev-days">퇴직 전 3개월 총일수</label>
+            <select id="sev-days">
+              <option value="89">89일 (2월 포함)</option>
+              <option value="90">90일</option>
+              <option value="91" selected>91일</option>
+              <option value="92">92일 (31일 달 2개)</option>
+            </select>
+          </div>
+          <label class="checkbox-row">
+            <input id="sev-irp-exempt" type="checkbox" />
+            <span>IRP 이전 예외 (55세 이후 퇴직, 사망, 외국인 출국 등)</span>
+          </label>
+        </details>
+        <p class="calc-note">법정 퇴직금 = 1일 평균임금 × 30일 × 재직일수/365. 퇴직금은 원칙적으로 근로자 명의 IRP로 세전 전액 이전되며(근로자퇴직급여 보장법 제9조②, 300만 원 이하 등 예외), 퇴직소득세는 인출할 때까지 이연됩니다.</p>
       </div>
       <div class="sheet receipt">
-        <h2 class="sheet-title">퇴직금 실수령 추정</h2>
+        <h2 class="sheet-title">퇴직금 추정</h2>
         <div class="result-summary">
-          <div class="result-label">예상 퇴직금 실수령액</div>
-          <div class="result-main num" id="res-sev-net">${Calc.formatWon(res.net)}</div>
-          <div class="result-sub num" id="res-sev-sub">세전 퇴직금 ${Calc.formatWon(res.gross)} · 퇴직세 합계 ${Calc.formatWon(res.totalTax)}</div>
+          <div class="result-label" id="res-sev-label">${res.irpRequired ? "IRP 입금액 (세전 전액, 퇴직소득세 과세이연)" : "예상 퇴직금 실수령액 (일시금)"}</div>
+          <div class="result-main num" id="res-sev-main">${Calc.formatWon(res.irpRequired ? res.gross : res.net)}</div>
+          <div class="result-sub num" id="res-sev-sub">${res.irpRequired ? `IRP에서 일시금 인출 시 세금 ${Calc.formatWon(res.totalTax)} · 연금 수령(10년 이내) 시 약 ${Calc.formatWon(res.pensionTaxEstimate)}` : `세전 퇴직금 ${Calc.formatWon(res.gross)} · 퇴직세 합계 ${Calc.formatWon(res.totalTax)}`}</div>
         </div>
         <table class="breakdown-table">
           <tbody>
+            <tr><th>1일 평균임금</th><td id="res-sev-daily">${Calc.formatWon(res.dailyAverageWage)} (${res.threeMonthDays}일 기준)</td></tr>
             <tr><th>세전 퇴직금</th><td id="res-sev-gross">${Calc.formatWon(res.gross)}</td></tr>
             <tr><th>근속연수공제</th><td id="res-sev-ded">-${Calc.formatWon(res.serviceDeduction)}</td></tr>
             <tr><th>퇴직소득세</th><td id="res-sev-inc">${Calc.formatWon(res.retirementIncomeTax)}</td></tr>
             <tr><th>지방소득세 (10%)</th><td id="res-sev-loc">${Calc.formatWon(res.localTax)}</td></tr>
-            <tr class="total-row"><th>퇴직세 합계</th><td id="res-sev-tax">-${Calc.formatWon(res.totalTax)}</td></tr>
+            <tr><th>퇴직세 합계</th><td id="res-sev-tax">-${Calc.formatWon(res.totalTax)}</td></tr>
+            <tr class="total-row"><th>일시금 수령 시 세후</th><td id="res-sev-net">${Calc.formatWon(res.net)}</td></tr>
           </tbody>
         </table>
         <div class="result-actions"><button type="button" class="btn-ghost" id="copy-sev-btn">결과 복사</button></div>
@@ -999,6 +1171,20 @@ function renderSeveranceWidget(defaultMonthlyManwon, defaultYears) {
 }
 
 function buildSeverancePages() {
+  const severanceFaqs = [
+    {
+      q: "퇴직금은 어떻게 계산하나요?",
+      a: "법정 퇴직금은 1일 평균임금 × 30일 × (재직일수 ÷ 365)입니다. 1일 평균임금은 퇴직 전 3개월 임금총액(직전 1년 상여금·연차수당의 3/12 포함)을 그 기간의 총일수(89~92일)로 나눈 금액이며, 통상임금보다 낮으면 통상임금을 씁니다."
+    },
+    {
+      q: "퇴직금을 통장으로 바로 받을 수 있나요?",
+      a: "2022년 4월 14일부터 법정 퇴직금은 근로자 명의 IRP 계좌로 세전 금액을 이전하는 것이 원칙입니다. 55세 이후 퇴직, 퇴직급여 300만 원 이하, 사망, 외국인 근로자 출국 등은 예외입니다. IRP로 받으면 퇴직소득세는 인출할 때까지 이연됩니다."
+    },
+    {
+      q: "IRP에서 연금으로 받으면 세금이 얼마나 줄어드나요?",
+      a: "55세 이후 연금으로 받으면 퇴직소득세의 70%(실제 수령연차 10년 이하), 60%(11~20년차), 50%(21년차 이후, 2026년 신설)만 과세됩니다."
+    }
+  ];
   const months = DATA.pseo.severanceMonthlyManwon;
   const yearsList = DATA.pseo.severanceYears;
   const pairs = [];
@@ -1021,20 +1207,22 @@ function buildSeverancePages() {
     "/severance/",
     renderLayout({
       routePath: "/severance/",
-      title: `${DATA.year} 퇴직금 실수령액 계산기`,
-      description: "평균 월급과 근속연수에 따른 세전 퇴직금, 근속연수공제, 퇴직소득세 및 실수령액 계산기.",
+      title: `${DATA.year} 퇴직금 계산기 (퇴직소득세·IRP)`,
+      description: "1일 평균임금 기준 법정 퇴직금, 근속연수공제·퇴직소득세, IRP 이전 시 과세이연과 일시금 세후액을 계산합니다.",
       activeNav: "severance",
       priority: "0.9",
       breadcrumbs: [{ label: "홈", href: "/" }, { label: "퇴직금 계산기", href: "/severance/" }],
+      faqs: severanceFaqs,
       bodyHtml: `
         <header class="page-head">
-          <h1>퇴직금 실수령액 계산기</h1>
-          <p class="subtitle">평균 월급과 근속연수를 입력하면 근속연수공제와 퇴직소득세를 반영한 실수령액을 계산합니다.</p>
+          <h1>퇴직금 계산기</h1>
+          <p class="subtitle">퇴직 전 3개월 임금으로 1일 평균임금과 법정 퇴직금을 구하고, 퇴직소득세와 IRP 이전(과세이연) 여부를 함께 보여줍니다.</p>
         </header>
         ${renderSeveranceWidget(350, 3)}
         ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("severance")}
         ${matrixLinks(null)}
+        ${renderFaqSection(severanceFaqs)}
       `
     })
   );
@@ -1047,8 +1235,8 @@ function buildSeverancePages() {
       `/severance/${p.slug}/`,
       renderLayout({
         routePath: `/severance/${p.slug}/`,
-        title: `월급 ${p.m}만 원 ${p.y}년 근속 퇴직금 (${Calc.formatWon(res.net)})`,
-        description: `월급 ${p.m}만 원으로 ${p.y}년 근무 시 세전 퇴직금 ${Calc.formatWon(res.gross)}, 세후 실수령액 약 ${Calc.formatWon(res.net)}입니다.`,
+        title: `월급 ${p.m}만 원 ${p.y}년 근속 퇴직금 (${Calc.formatWon(res.gross)})`,
+        description: `월급 ${p.m}만 원으로 ${p.y}년 근무 시 법정 퇴직금은 약 ${Calc.formatWon(res.gross)}, 퇴직소득세·지방소득세는 ${Calc.formatWon(res.totalTax)}(일시금 기준)입니다.`,
         activeNav: "severance",
         priority: "0.75",
         breadcrumbs: [
@@ -1059,7 +1247,7 @@ function buildSeverancePages() {
         bodyHtml: `
           <header class="page-head">
             <h1>월급 ${p.m}만 원 · ${p.y}년 근속 퇴직금</h1>
-            <p class="subtitle">세전 퇴직금 ${Calc.formatWon(res.gross)}, 퇴직소득세 공제 후 실수령액은 약 <strong>${Calc.formatWon(res.net)}</strong>입니다.</p>
+            <p class="subtitle">3개월 91일·상여금 없음 기준 법정 퇴직금은 약 <strong>${Calc.formatWon(res.gross)}</strong>입니다. ${res.irpRequired ? "IRP로 세전 전액이 입금되고" : "일시금으로 받으면"} 퇴직소득세 등 ${Calc.formatWon(res.totalTax)}${res.irpRequired ? "는 인출 시까지 이연됩니다" : "를 뺀 실수령액은 " + Calc.formatWon(res.net) + "입니다"}.</p>
           </header>
           ${renderSeveranceWidget(p.m, p.y)}
           ${renderAffiliateCard("severance")}
@@ -1089,9 +1277,16 @@ function renderUnemploymentWidget(defaultMonthlyManwon, defaultYears) {
           </div>
         </div>
         <div class="field">
-          <label for="unemp-years">고용보험 총 가입기간</label>
+          <label for="unemp-hours">이직 전 1일 소정근로시간 <span class="field-hint">하한액 결정</span></label>
+          <select id="unemp-hours">
+            ${[8, 7, 6, 5, 4, 3, 2, 1].map((h) => `<option value="${h}"${h === 8 ? " selected" : ""}>${h}시간 (하한 ${Math.floor(DATA.unemployment.minimumWage * h * 0.8).toLocaleString("ko-KR")}원)</option>`).join("")}
+          </select>
+        </div>
+        <div class="field">
+          <label for="unemp-years">고용보험 피보험기간</label>
           <select id="unemp-years">
-            <option value="0.5" ${defaultYears < 1 ? "selected" : ""}>1년 미만</option>
+            <option value="0">180일 미만 (수급 불가)</option>
+            <option value="0.5" ${defaultYears < 1 ? "selected" : ""}>180일 이상 ~ 1년 미만</option>
             <option value="1" ${defaultYears >= 1 && defaultYears < 3 ? "selected" : ""}>1년 이상 ~ 3년 미만</option>
             <option value="3" ${defaultYears >= 3 && defaultYears < 5 ? "selected" : ""}>3년 이상 ~ 5년 미만</option>
             <option value="5" ${defaultYears >= 5 && defaultYears < 10 ? "selected" : ""}>5년 이상 ~ 10년 미만</option>
@@ -1104,6 +1299,7 @@ function renderUnemploymentWidget(defaultMonthlyManwon, defaultYears) {
             <span>퇴사 시 만 50세 이상 또는 장애인</span>
           </label>
         </div>
+        <p class="calc-note">이직 전 18개월 중 피보험단위기간 180일 이상이고 비자발적 이직(또는 정당한 이직사유)이어야 받을 수 있습니다. 하한액은 최저임금 × 1일 소정근로시간 × 80%라 단시간 근로자는 비례해 낮아집니다.</p>
       </div>
       <div class="sheet receipt">
         <h2 class="sheet-title">구직급여 산출</h2>
@@ -1114,7 +1310,9 @@ function renderUnemploymentWidget(defaultMonthlyManwon, defaultYears) {
         </div>
         <table class="breakdown-table">
           <tbody>
-            <tr><th>1일 구직급여액 (상·하한 반영)</th><td id="res-unemp-daily">${Calc.formatWon(res.dailyBenefit)}</td></tr>
+            <tr><th>1일 평균임금 (월급×12÷365)</th><td id="res-unemp-avg">${Calc.formatWon(res.dailyAverageWage)}</td></tr>
+            <tr><th>1일 하한 ~ 상한</th><td id="res-unemp-limits">${Calc.formatWon(res.lowerLimit)} ~ ${Calc.formatWon(res.upperLimit)}</td></tr>
+            <tr><th>1일 구직급여액 (평균임금 60%)</th><td id="res-unemp-daily">${Calc.formatWon(res.dailyBenefit)}</td></tr>
             <tr><th>소정급여일수</th><td id="res-unemp-days">${res.benefitDays}일</td></tr>
             <tr><th>월 환산 수령액 (30일 기준)</th><td id="res-unemp-monthly">${Calc.formatWon(res.monthlyBenefit)}</td></tr>
           </tbody>
@@ -1186,7 +1384,7 @@ function buildUnemploymentPages() {
         bodyHtml: `
           <header class="page-head">
             <h1>월급 ${p.m}만 원 · 가입 ${p.y}년 실업급여</h1>
-            <p class="subtitle">만 50세 미만 기준 1일 ${Calc.formatWon(res.dailyBenefit)}, 총 ${res.benefitDays}일간 <strong>${Calc.formatWon(res.totalBenefit)}</strong> 수령이 예상됩니다.</p>
+            <p class="subtitle">만 50세 미만·1일 8시간 근무 기준 1일 ${Calc.formatWon(res.dailyBenefit)}, 총 ${res.benefitDays}일간 <strong>${Calc.formatWon(res.totalBenefit)}</strong> 수령이 예상됩니다.</p>
           </header>
           ${renderUnemploymentWidget(p.m, p.y)}
           ${renderAffiliateCard("unemployment")}
@@ -1216,8 +1414,8 @@ function renderWeeklyHolidayWidget(defaultWage, defaultHours) {
           </div>
         </div>
         <div class="field">
-          <label for="wh-hours">주간 소정근로시간 <span class="field-hint">주 15시간 이상 발생</span></label>
-          <div class="input-wrap"><input id="wh-hours" type="number" min="0" max="80" step="1" value="${defaultHours}" /><span class="input-unit">시간</span></div>
+          <label for="wh-hours">주간 근로시간 <span class="field-hint">40시간 초과분은 연장근로</span></label>
+          <div class="input-wrap"><input id="wh-hours" type="number" min="0" max="52" step="1" value="${defaultHours}" /><span class="input-unit">시간</span></div>
           <div class="preset-row" id="wh-hours-presets">
             <button type="button" class="chip-btn" data-preset="15">15시간</button>
             <button type="button" class="chip-btn" data-preset="20">20시간</button>
@@ -1225,6 +1423,13 @@ function renderWeeklyHolidayWidget(defaultWage, defaultHours) {
             <button type="button" class="chip-btn" data-preset="40">40시간</button>
           </div>
         </div>
+        <div class="field">
+          <label class="checkbox-row">
+            <input id="wh-fiveplus" type="checkbox" checked />
+            <span>상시 근로자 5인 이상 사업장 (연장근로 50% 가산)</span>
+          </label>
+        </div>
+        <p class="calc-note">주휴수당은 4주 평균 1주 소정근로시간이 15시간 이상이고 소정근로일을 개근한 경우 발생하며, 5인 미만 사업장도 지급 대상입니다. 월 환산은 (소정근로시간 + 주휴시간) × 365 ÷ 7 ÷ 12를 시간 단위로 반올림(주 40시간 = 209시간)합니다.</p>
       </div>
       <div class="sheet receipt">
         <h2 class="sheet-title">주휴수당 및 주급 산출</h2>
@@ -1232,13 +1437,15 @@ function renderWeeklyHolidayWidget(defaultWage, defaultHours) {
           <div class="result-label">예상 주휴수당 (1주 기준)</div>
           <div class="result-main num" id="res-wh-pay">${Calc.formatWon(res.holidayPay)}</div>
           <div class="result-sub num" id="res-wh-sub">주급(주휴 포함) ${Calc.formatWon(res.totalWeeklyPay)} · 월 환산 약 ${Calc.formatWon(res.estimatedMonthlyPay)}</div>
+          <p class="result-note" id="res-wh-note" hidden></p>
         </div>
         <table class="breakdown-table">
           <tbody>
-            <tr><th>기본 주급</th><td id="res-wh-base">${Calc.formatWon(res.baseWeeklyPay)}</td></tr>
+            <tr><th>기본 주급 (소정근로)</th><td id="res-wh-base">${Calc.formatWon(res.regularPay)}</td></tr>
+            <tr><th>연장근로수당</th><td id="res-wh-ot">${Calc.formatWon(res.overtimePay)}</td></tr>
             <tr><th>인정 주휴시간</th><td id="res-wh-hours">${res.holidayHours.toFixed(1)}시간</td></tr>
             <tr><th>주휴 포함 주급</th><td id="res-wh-total">${Calc.formatWon(res.totalWeeklyPay)}</td></tr>
-            <tr><th>월 환산 급여 (4.345주)</th><td id="res-wh-monthly">${Calc.formatWon(res.estimatedMonthlyPay)}</td></tr>
+            <tr><th>월 환산 급여</th><td id="res-wh-monthly">${Calc.formatWon(res.estimatedMonthlyPay)} (${res.monthlyPaidHours}시간)</td></tr>
           </tbody>
         </table>
         <div class="result-actions"><button type="button" class="btn-ghost" id="copy-wh-btn">결과 복사</button></div>
@@ -1328,7 +1535,7 @@ function renderGiftTaxWidget(defaultAmountManwon, defaultRelation) {
       <div class="sheet">
         <h2 class="sheet-title">증여 조건</h2>
         <div class="field">
-          <label for="gift-amount">증여 재산 가액 <span class="field-hint">10년 합산 기준</span></label>
+          <label for="gift-amount">증여 재산 가액 <span class="field-hint">동일인(배우자 포함) 10년 합산액</span></label>
           <div class="input-wrap"><input id="gift-amount" type="number" min="0" step="500" value="${defaultAmountManwon}" /><span class="input-unit">만 원</span></div>
           <div class="preset-row" id="gift-presets">
             <button type="button" class="chip-btn" data-preset="5000">5,000만</button>
@@ -1339,31 +1546,56 @@ function renderGiftTaxWidget(defaultAmountManwon, defaultRelation) {
           </div>
         </div>
         <div class="field">
-          <label for="gift-relation">증여자와의 관계 (공제 한도)</label>
+          <label for="gift-relation">받는 사람(수증자) 기준 관계 <span class="field-hint">10년 공제 한도</span></label>
           <select id="gift-relation">
-            <option value="spouse" ${defaultRelation === "spouse" ? "selected" : ""}>배우자 (6억 원 공제)</option>
-            <option value="adultChild" ${defaultRelation === "adultChild" ? "selected" : ""}>성년 자녀 (5,000만 원 공제)</option>
-            <option value="minorChild" ${defaultRelation === "minorChild" ? "selected" : ""}>미성년 자녀 (2,000만 원 공제)</option>
-            <option value="parent" ${defaultRelation === "parent" ? "selected" : ""}>부모·직계존속 (5,000만 원 공제)</option>
-            <option value="relative" ${defaultRelation === "relative" ? "selected" : ""}>기타 친족 (1,000만 원 공제)</option>
+            <option value="spouse" ${defaultRelation === "spouse" ? "selected" : ""}>배우자가 받음 (6억 원)</option>
+            <option value="adultChild" ${defaultRelation === "adultChild" ? "selected" : ""}>성년 자녀가 부모에게 받음 (5,000만 원)</option>
+            <option value="minorChild" ${defaultRelation === "minorChild" ? "selected" : ""}>미성년 자녀가 부모에게 받음 (2,000만 원)</option>
+            <option value="adultGrandchild" ${defaultRelation === "adultGrandchild" ? "selected" : ""}>성년 손자녀가 조부모에게 받음 (5,000만 원·30% 할증)</option>
+            <option value="minorGrandchild" ${defaultRelation === "minorGrandchild" ? "selected" : ""}>미성년 손자녀가 조부모에게 받음 (2,000만 원·30~40% 할증)</option>
+            <option value="parent" ${defaultRelation === "parent" ? "selected" : ""}>부모·조부모가 자녀에게 받음 (5,000만 원)</option>
+            <option value="relative" ${defaultRelation === "relative" ? "selected" : ""}>기타 친족 · 4촌 이내 혈족·3촌 이내 인척 (1,000만 원)</option>
             <option value="other" ${defaultRelation === "other" ? "selected" : ""}>타인 (공제 없음)</option>
           </select>
         </div>
+        <div class="field" id="gift-marriage-field"${["adultChild", "minorChild", "adultGrandchild", "minorGrandchild"].includes(defaultRelation) ? "" : " hidden"}>
+          <label class="checkbox-row">
+            <input id="gift-marriage" type="checkbox" />
+            <span>혼인·출산 증여재산공제 (혼인신고일 전후 2년 또는 출생일부터 2년 이내, 평생 1억 원)</span>
+          </label>
+          <label for="gift-marriage-used">이미 사용한 혼인·출산 공제액</label>
+          <div class="input-wrap"><input id="gift-marriage-used" type="number" min="0" max="10000" step="500" value="0" /><span class="input-unit">만 원</span></div>
+        </div>
+        <details class="calc-details">
+          <summary>10년 내 이전 증여가 있는 경우</summary>
+          <div class="field">
+            <label for="gift-used-ded">같은 그룹에서 이미 사용한 증여재산공제 <span class="field-hint">예: 아버지·어머니·조부모 합산</span></label>
+            <div class="input-wrap"><input id="gift-used-ded" type="number" min="0" step="500" value="0" /><span class="input-unit">만 원</span></div>
+          </div>
+          <div class="field">
+            <label for="gift-prior-tax">합산된 이전 증여의 산출세액 <span class="field-hint">기납부세액공제</span></label>
+            <div class="input-wrap"><input id="gift-prior-tax" type="number" min="0" step="10" value="0" /><span class="input-unit">만 원</span></div>
+          </div>
+        </details>
+        <p class="calc-note">증여재산공제는 받는 사람 기준으로 그룹(직계존속 전체 등)별 10년간 한 번만 적용됩니다. 과세표준 50만 원 미만은 과세하지 않습니다.</p>
       </div>
       <div class="sheet receipt">
         <h2 class="sheet-title">증여세 산출 (자진신고 3% 반영)</h2>
         <div class="result-summary">
           <div class="result-label">최종 납부 예상 세액</div>
           <div class="result-main num" id="res-gift-final">${Calc.formatWon(res.finalTax)}</div>
-          <div class="result-sub num" id="res-gift-sub">자진신고 3% 공제 적용 · 실효세율 ${Calc.formatPercent(res.effectiveRate, 1)}</div>
+          <div class="result-sub num" id="res-gift-sub">신고세액공제 3% 적용 · 실효세율 ${Calc.formatPercent(res.effectiveRate, 1)}</div>
         </div>
         <table class="breakdown-table">
           <tbody>
             <tr><th>증여 재산 가액</th><td id="res-gift-gross">${Calc.formatWon(res.gift)}</td></tr>
-            <tr><th>증여재산공제</th><td id="res-gift-ded">-${Calc.formatWon(res.deductionApplied)}</td></tr>
+            <tr><th>증여재산공제</th><td id="res-gift-ded">-${Calc.formatWon(res.deductionApplied - res.marriageBirthDeduction)}</td></tr>
+            <tr><th>혼인·출산 공제</th><td id="res-gift-mb">-${Calc.formatWon(res.marriageBirthDeduction)}</td></tr>
             <tr><th>과세표준</th><td id="res-gift-base">${Calc.formatWon(res.taxBase)}</td></tr>
             <tr><th>산출세액</th><td id="res-gift-calc">${Calc.formatWon(res.calculatedTax)}</td></tr>
-            <tr class="total-row"><th>자진신고 세액공제 (3%)</th><td id="res-gift-credit">-${Calc.formatWon(res.voluntaryCredit)}</td></tr>
+            <tr><th>세대생략 할증세액</th><td id="res-gift-surcharge">${Calc.formatWon(res.generationSkipSurcharge)}</td></tr>
+            <tr><th>기납부세액공제</th><td id="res-gift-prior">-${Calc.formatWon(res.priorTaxCredit)}</td></tr>
+            <tr class="total-row"><th>신고세액공제 (3%)</th><td id="res-gift-credit">-${Calc.formatWon(res.voluntaryCredit)}</td></tr>
           </tbody>
         </table>
         <div class="result-actions"><button type="button" class="btn-ghost" id="copy-gift-btn">결과 복사</button></div>
@@ -1373,6 +1605,24 @@ function renderGiftTaxWidget(defaultAmountManwon, defaultRelation) {
 }
 
 function buildGiftTaxPages() {
+  const giftFaqs = [
+    {
+      q: "결혼할 때 부모님께 받으면 얼마까지 세금이 없나요?",
+      a: "혼인신고일 전후 2년(또는 자녀 출생일부터 2년) 이내에 직계존속에게 받으면 기본 5,000만 원과 별도로 1억 원을 추가 공제해 10년 내 다른 증여가 없다면 1억 5,000만 원까지 증여세가 없습니다(상속세 및 증여세법 제53조의2). 혼인과 출산 공제를 합쳐 평생 1억 원이 한도입니다."
+    },
+    {
+      q: "조부모가 손주에게 주면 세금이 더 나오나요?",
+      a: "부모를 건너뛰는 세대생략 증여는 산출세액의 30%가 할증되고, 받는 손자녀가 미성년자이면서 증여재산이 20억 원을 넘으면 40%가 할증됩니다(제57조). 단, 부모가 사망한 경우는 할증하지 않습니다."
+    },
+    {
+      q: "10년 안에 두 번 증여받으면 어떻게 계산하나요?",
+      a: "동일인(직계존속이면 그 배우자 포함)에게 10년 이내 받은 증여는 합산해 세액을 다시 계산하고, 이전 증여 때의 산출세액은 기납부세액으로 뺍니다(제47조·제58조). 계산기의 '10년 내 이전 증여' 항목에 입력하세요."
+    },
+    {
+      q: "최근 증여세율이나 공제가 바뀌었나요?",
+      a: "2026년 11월 현재 세율(10~50%)과 증여재산공제 금액은 바뀌지 않았습니다. 최고세율 인하·유산취득세 전환은 국회 계류 중인 개정안입니다. 기타친족 범위는 2025년 3월 14일부터 4촌 이내 혈족·3촌 이내 인척으로 좁아졌습니다."
+    }
+  ];
   const cases = DATA.pseo.giftTaxCases;
   const matrixLinks = (currentSlug) => `
     <section class="section-block">
@@ -1392,20 +1642,22 @@ function buildGiftTaxPages() {
     "/gift-tax/",
     renderLayout({
       routePath: "/gift-tax/",
-      title: `${DATA.year} 증여세 계산기 (공제 한도 · 자진신고 3%)`,
-      description: "배우자·자녀·친족 증여재산공제 한도와 10~50% 누진세율, 자진신고 3% 공제를 반영한 증여세 계산기.",
+      title: `${DATA.year} 증여세 계산기 (공제 한도 · 혼인·출산 공제 · 신고 3%)`,
+      description: "배우자·자녀·손자녀·친족 증여재산공제, 혼인·출산 1억 공제, 세대생략 할증, 기납부세액공제, 10~50% 누진세율과 신고세액공제 3%를 반영한 증여세 계산기.",
       activeNav: "gift-tax",
       priority: "0.9",
       breadcrumbs: [{ label: "홈", href: "/" }, { label: "증여세", href: "/gift-tax/" }],
+      faqs: giftFaqs,
       bodyHtml: `
         <header class="page-head">
           <h1>${DATA.year} 증여세 계산기</h1>
-          <p class="subtitle">증여자 관계별 10년 공제 한도와 누진세율, 3개월 이내 자진신고 3% 공제를 반영해 계산합니다.</p>
+          <p class="subtitle">받는 사람 기준 10년 공제 한도, 혼인·출산 공제, 세대생략 할증, 누진세율과 3개월 이내 신고세액공제 3%를 반영해 계산합니다.</p>
         </header>
         ${renderGiftTaxWidget(10000, "adultChild")}
         ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("giftTax")}
         ${matrixLinks(null)}
+        ${renderFaqSection(giftFaqs)}
       `
     })
   );
@@ -1459,9 +1711,9 @@ function buildHomePage() {
         <header class="page-head hero-head">
           <div class="page-head-row">
             <h1>${DATA.year} 세금·금융 실수령 계산기</h1>
-            <span class="meta-tag">9종 계산기 · ${DATA.updatedAt} 기준 검증</span>
+            <span class="meta-tag">9종 계산기 · ${DATA.updatedAt} 법령 기준 갱신</span>
           </div>
-          <p class="subtitle">2026년 확정 법정 세율·4대보험·고용노동부 고시 기준으로 실수령액과 납부세액을 브라우저에서 즉시 산출합니다.</p>
+          <p class="subtitle">2026년 시행 법령·간이세액표·4대보험 요율·고용노동부 고시를 기준으로 실수령액과 납부세액을 브라우저에서 즉시 추정합니다.</p>
           <div class="stat-strip" aria-label="2026년 확정 법정 기준 요약">
             <div class="stat-item"><span>최저시급</span><strong class="num">${DATA.weeklyHoliday.minimumWage2026.toLocaleString("ko-KR")}원</strong></div>
             <div class="stat-item"><span>국민연금(근로자)</span><strong class="num">${(DATA.salary.nationalPensionRate * 100).toFixed(2)}%</strong></div>
@@ -1474,7 +1726,7 @@ function buildHomePage() {
           <a class="dir-card" href="/salary/">
             <div class="dir-top"><span class="dir-cat">급여 · 4대보험</span><span class="dir-arrow" aria-hidden="true">→</span></div>
             <h2>연봉 실수령액</h2>
-            <p>국민연금 4.75%·건보 3.595%·소득세 공제 후 월 실수령액</p>
+            <p>4대보험 + 2026 간이세액표(자녀 공제 포함) 기준 월 실수령액</p>
           </a>
           <a class="dir-card" href="/freelancer/">
             <div class="dir-top"><span class="dir-cat">사업소득</span><span class="dir-arrow" aria-hidden="true">→</span></div>
@@ -1484,37 +1736,37 @@ function buildHomePage() {
           <a class="dir-card" href="/severance/">
             <div class="dir-top"><span class="dir-cat">퇴직 · 이직</span><span class="dir-arrow" aria-hidden="true">→</span></div>
             <h2>퇴직금 계산기</h2>
-            <p>근속연수공제 및 퇴직소득세 반영 실수령액</p>
+            <p>1일 평균임금 기준 법정 퇴직금·퇴직소득세·IRP 과세이연</p>
           </a>
           <a class="dir-card" href="/unemployment/">
             <div class="dir-top"><span class="dir-cat">고용보험</span><span class="dir-arrow" aria-hidden="true">→</span></div>
             <h2>실업급여 계산기</h2>
-            <p>1일 상한 68,100원·하한 66,048원 기준 구직급여</p>
+            <p>1일 상한 68,100원·소정근로시간별 하한(8시간 66,048원) 구직급여</p>
           </a>
           <a class="dir-card" href="/weekly-holiday/">
             <div class="dir-top"><span class="dir-cat">단시간 근로</span><span class="dir-arrow" aria-hidden="true">→</span></div>
             <h2>주휴수당 계산기</h2>
-            <p>2026 최저시급 10,320원 기준 주휴수당·월급 환산</p>
+            <p>2026 최저시급 10,320원 기준 주휴수당·연장수당·월급(209시간) 환산</p>
           </a>
           <a class="dir-card" href="/stock-tax/">
             <div class="dir-top"><span class="dir-cat">해외투자</span><span class="dir-arrow" aria-hidden="true">→</span></div>
             <h2>해외주식 양도세</h2>
-            <p>연 250만 원 공제·손익통산 22% 양도세</p>
+            <p>연 250만 원 공제·손익통산·2026 RIA 감면 반영 22% 양도세</p>
           </a>
           <a class="dir-card" href="/real-estate/">
             <div class="dir-top"><span class="dir-cat">부동산</span><span class="dir-arrow" aria-hidden="true">→</span></div>
             <h2>주택 취등록세</h2>
-            <p>6억·9억 구간별 취득세·지방교육세·농특세</p>
+            <p>조정대상지역 중과·생애최초·출산 감면 반영 취득세·교육세·농특세</p>
           </a>
           <a class="dir-card" href="/gift-tax/">
             <div class="dir-top"><span class="dir-cat">상속 · 증여</span><span class="dir-arrow" aria-hidden="true">→</span></div>
             <h2>증여세 계산기</h2>
-            <p>관계별 10년 공제 한도 및 자진신고 3% 공제</p>
+            <p>10년 공제·혼인·출산 1억 공제·세대생략 할증·신고 3% 공제</p>
           </a>
           <a class="dir-card" href="/jeonse/">
             <div class="dir-top"><span class="dir-cat">임대차</span><span class="dir-arrow" aria-hidden="true">→</span></div>
             <h2>전월세 전환율</h2>
-            <p>전세 보증금 차액 기준 적정 월세 산출</p>
+            <p>보증금 차액 기준 월세와 법정 전환율 상한(기준금리+2%p) 확인</p>
           </a>
         </section>
 
@@ -1567,15 +1819,15 @@ function buildTrustPages() {
         <article class="prose-sheet">
           <h2>1. 제공 중인 9종 계산기</h2>
           <ul>
-            <li><a href="/salary/">연봉 실수령액 계산기</a> — 4대보험(국민연금·건강보험·장기요양보험·고용보험) 및 근로소득세·지방소득세 추정</li>
-            <li><a href="/freelancer/">프리랜서 3.3% 계산기</a> — 사업소득 원천징수(소득세 3% + 지방소득세 0.3%) 정산 및 세후→세전 역산</li>
-            <li><a href="/severance/">퇴직금 계산기</a> — 계속근로기간 기준 법정 퇴직금 및 근속연수공제 반영 퇴직소득세 추정</li>
-            <li><a href="/unemployment/">실업급여 계산기</a> — 연령·피보험기간별 소정급여일수 및 상·하한액 적용 구직급여 산출</li>
-            <li><a href="/weekly-holiday/">주휴수당 계산기</a> — 주 15시간 이상 근로 기준 주휴수당 및 월 환산 급여 계산</li>
-            <li><a href="/stock-tax/">해외주식 양도소득세 계산기</a> — 연간 250만 원 기본공제 및 손익통산 후 22%(양도세 20%+지방세 2%) 산출</li>
-            <li><a href="/real-estate/">주택 취등록세 계산기</a> — 6억·9억 구간별 세율, 다주택 중과, 전용 85㎡ 초과 농어촌특별세 반영</li>
-            <li><a href="/gift-tax/">증여세 계산기</a> — 수증자 관계별 10년 공제 한도, 누진세율, 자진신고 3% 세액공제 반영</li>
-            <li><a href="/jeonse/">전월세 전환율 계산기</a> — 보증금 차액과 전환율 기준 적정 월세 산출</li>
+            <li><a href="/salary/">연봉 실수령액 계산기</a> — 4대보험(국민연금·건강보험·장기요양보험·고용보험)과 소득세법 시행령 별표2 근로소득 간이세액표(2026. 2. 27. 개정) 원표 조회, 8~20세 자녀 공제, 원천징수 80/100/120%</li>
+            <li><a href="/freelancer/">프리랜서 3.3% 계산기</a> — 사업소득 원천징수(소득세 3% + 지방소득세 소득세의 10%) 정산 및 세후→세전 역산</li>
+            <li><a href="/severance/">퇴직금 계산기</a> — 1일 평균임금 × 30일 × 재직일수/365 법정 퇴직금, 근속연수공제·환산급여공제 퇴직소득세, IRP 이전(과세이연) 여부</li>
+            <li><a href="/unemployment/">실업급여 계산기</a> — 평균임금 60%, 상한 68,100원, 최저임금·1일 소정근로시간 연동 하한, 연령·피보험기간별 소정급여일수</li>
+            <li><a href="/weekly-holiday/">주휴수당 계산기</a> — 주 15시간 이상 주휴수당, 5인 이상 사업장 연장근로 50% 가산, 월 환산 급여(주 40시간 = 209시간)</li>
+            <li><a href="/stock-tax/">해외주식 양도소득세 계산기</a> — 연간 250만 원 기본공제, 손익통산, 2026 국내시장복귀계좌(RIA) 소득공제 후 22%(양도세 20% + 지방소득세)</li>
+            <li><a href="/real-estate/">주택 취등록세 계산기</a> — 표준세율(1~3%), 조정대상지역·주택 수별 8%·12% 중과, 중과 시 교육세 0.4%·농특세 0.6/1.0%, 생애최초·출산 감면</li>
+            <li><a href="/gift-tax/">증여세 계산기</a> — 수증자 기준 10년 공제 한도, 혼인·출산 1억 공제, 세대생략 할증, 기납부세액공제, 누진세율, 신고세액공제 3%, 과세최저한 50만 원</li>
+            <li><a href="/jeonse/">전월세 전환율 계산기</a> — 보증금 차액과 전환율 기준 월세, 주택임대차보호법상 전환율 상한(기준금리 + 2%p) 자동 적용</li>
           </ul>
 
           <h2>2. 세율·요율 공식 참고 출처</h2>
@@ -1585,7 +1837,9 @@ function buildTrustPages() {
             <li>지방세(취득세·지방교육세): <a href="https://www.wetax.go.kr" target="_blank" rel="noopener noreferrer">위택스(WeTax)</a></li>
             <li>실업급여·최저임금·근로기준: <a href="https://www.work24.go.kr" target="_blank" rel="noopener noreferrer">고용24</a> 및 <a href="https://www.moel.go.kr" target="_blank" rel="noopener noreferrer">고용노동부</a></li>
             <li>금융상품·임대차 참고: <a href="https://fine.fss.or.kr" target="_blank" rel="noopener noreferrer">금융감독원 파인</a> 및 <a href="https://www.khug.or.kr" target="_blank" rel="noopener noreferrer">주택도시보증공사(HUG)</a></li>
+            <li>법령 원문: <a href="https://www.law.go.kr" target="_blank" rel="noopener noreferrer">국가법령정보센터</a> (소득세법 시행령 별표2, 지방세법 제11조·제13조의2, 지방세특례제한법 제36조의3·제36조의5, 상속세 및 증여세법 제53조·제53조의2·제57조, 조세특례제한법 제91조의26, 고용보험법 제45·46조, 근로자퇴직급여 보장법 제9조, 주택임대차보호법 시행령 제9조)</li>
           </ul>
+          <p>최종 법령 대조일: ${DATA.updatedAt}. 한국은행 기준금리 ${DATA.jeonse.baseRate.toFixed(2)}%(${DATA.jeonse.baseRateAsOf}), 조정대상지역은 2026년 7월 1일 지정 현황을 반영했습니다.</p>
 
           <h2>3. 면책고지 (Disclaimer)</h2>
           <p>${escapeHtml(DATA.siteName)}의 모든 계산 결과는 일반적인 법정 요율을 적용한 <strong>참고용 추정치</strong>입니다. 비과세 항목 구성, 부양가족·자녀 세액공제, 생애최초·신혼부부 감면, 조정대상지역 여부, 과거 10년 내 합산 증여 이력 등 개인별 특수 조건에 따라 실제 신고·납부 세액과 차이가 발생할 수 있습니다. 실제 세무 신고나 계약 결정 전에는 반드시 관할 세무서, 홈택스 모의계산 또는 세무 전문가의 확인을 받으시기 바랍니다.</p>
