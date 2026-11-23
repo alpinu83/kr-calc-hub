@@ -305,8 +305,8 @@
     const afterRia = Math.max(0, netProfit - riaDeduction);
     const deductionApplied = Math.min(afterRia, r.basicDeduction);
     const taxableBase = Math.max(0, afterRia - r.basicDeduction);
-    const capitalGainsTax = Math.floor(taxableBase * r.capitalGainsTaxRate);
-    const localTax = Math.floor(capitalGainsTax * 0.1);
+    const capitalGainsTax = floor10(taxableBase * r.capitalGainsTaxRate);
+    const localTax = floor10(capitalGainsTax * 0.1);
     const totalTax = capitalGainsTax + localTax;
     const afterTaxProfit = Math.max(0, netProfit - totalTax);
     const effectiveRate = netProfit > 0 ? totalTax / netProfit : 0;
@@ -385,7 +385,10 @@
     const reliefLimit = reliefEligible ? r.reliefLimits[reliefKey] : 0;
     const reliefAmount = Math.min(acquisitionTaxBeforeRelief, reliefLimit);
     const acquisitionTax = acquisitionTaxBeforeRelief - reliefAmount;
-    const localEducationTax = floor10(price * educationRate);
+    // 지방세법 제151조: 유상주택 취득세 감면 시 감면된 취득세액에 부가되는 지방교육세도 비례 감면
+    const localEducationTax = heavy
+      ? floor10(price * educationRate)
+      : floor10(acquisitionTax * r.localEducationRateFactor);
     // 감면받은 취득세의 20% 농어촌특별세(국민주택규모 이하는 비과세)
     const reliefRuralTax = isOver85 ? floor10(reliefAmount * r.reliefRuralSpecialTaxRate) : 0;
     const ruralSpecialTax = floor10(price * ruralRate) + reliefRuralTax;
@@ -686,7 +689,7 @@
     const priorTaxCredit = Math.min(taxWithSurcharge, Math.max(0, Number(opts.priorTax) || 0));
     const creditBase = taxWithSurcharge - priorTaxCredit;
     const voluntaryCredit = Math.floor(creditBase * r.voluntaryFilingCreditRate);
-    const finalTax = Math.max(0, creditBase - voluntaryCredit);
+    const finalTax = floor10(Math.max(0, creditBase - voluntaryCredit));
     const effectiveRate = gift > 0 ? finalTax / gift : 0;
 
     return {

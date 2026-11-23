@@ -244,7 +244,10 @@
       setText("res-inh-main", Calc.formatWon(res.finalTax));
       setText("res-inh-sub", "자진신고 3% 공제 적용 · 실효세율 " + Calc.formatPercent(res.effectiveRate, 1));
       setText("res-inh-val", Calc.formatWon(res.taxableValue));
-      setText("res-inh-lump", negWon(res.lumpSumOrItem));
+      setText(
+        "res-inh-lump",
+        negWon(res.lumpSumOrItem) + (res.isSpouseOnly ? " (단독상속 기초공제)" : "")
+      );
       setText("res-inh-spouse", negWon(res.spouseDeduction));
       setText("res-inh-fin", negWon(res.financialDeduction));
       setText("res-inh-base", Calc.formatWon(res.taxBase));
@@ -277,22 +280,30 @@
       { param: "hold", id: "tr-hold" },
       { param: "reside", id: "tr-reside" },
       { param: "oneHome", id: "tr-onehome", type: "checkbox" },
-      { param: "heavy", id: "tr-heavy", type: "checkbox" }
+      { param: "needReside", id: "tr-need-reside", type: "checkbox" },
+      { param: "heavy", id: "tr-heavy" }
     ];
 
     function compute() {
+      const heavyMode = val("tr-heavy", "none");
       return Calc.calcPropertyTransferTax({
         buyPrice: num("tr-buy") * 100000000,
         sellPrice: num("tr-sell") * 100000000,
         expenses: num("tr-exp") * 10000,
         holdYears: num("tr-hold", 5),
         resideYears: num("tr-reside", 3),
-        isOneHome: checked("tr-onehome"),
-        isMultiHeavy: checked("tr-heavy")
+        isOneHome: heavyMode === "none" && checked("tr-onehome"),
+        needReside2Years: checked("tr-need-reside"),
+        heavyMode
       });
     }
 
     function update() {
+      const heavyMode = val("tr-heavy", "none");
+      const oneHomeEl = $("tr-onehome");
+      if (heavyMode !== "none" && oneHomeEl && oneHomeEl.checked) {
+        oneHomeEl.checked = false;
+      }
       const res = compute();
       setText("res-tr-main", Calc.formatWon(res.totalTax));
       setText("res-tr-sub", "양도차익 " + Calc.formatWon(res.totalGain) + " · 실효세율 " + Calc.formatPercent(res.effectiveRate, 1));
@@ -382,7 +393,12 @@
         setText("res-vat-row3-v", negWon(res.cardCredit));
         setText("res-vat-row4-k", isRefund ? "최종 예상 환급액" : "최종 예상 납부세액");
         setText("res-vat-row4-v", Calc.formatWon(Math.abs(res.payableVat)));
-        setNote("res-vat-note", res.exempt ? "간이과세자 연 공급대가 4,800만 원 미만으로 납부의무가 면제됩니다(신고는 필수)." : "");
+        const vatNote = res.exempt
+          ? "간이과세자 연 공급대가 4,800만 원 미만으로 납부의무가 면제됩니다(신고는 필수, 세금계산서 발급분 제외)."
+          : res.overSimplifiedLimit
+          ? "연 공급대가 1억 400만 원 이상은 다음 해 7월 1일부터 일반과세자로 전환됩니다."
+          : "";
+        setNote("res-vat-note", vatNote);
       }
     }
 
@@ -409,6 +425,7 @@
     const fields = [
       { param: "int", id: "fin-interest" },
       { param: "div", id: "fin-dividend" },
+      { param: "dom", id: "fin-domestic", type: "checkbox" },
       { param: "other", id: "fin-other" }
     ];
 
@@ -416,6 +433,7 @@
       return Calc.calcFinancialTax({
         interest: num("fin-interest") * 10000,
         dividend: num("fin-dividend") * 10000,
+        domesticDividend: $("fin-domestic") ? checked("fin-domestic") : true,
         otherIncome: num("fin-other") * 10000
       });
     }
@@ -426,7 +444,7 @@
       setText(
         "res-fin-sub",
         res.isComprehensive
-          ? "금융소득 " + Calc.formatWon(res.totalFinancial) + " → 종합과세 대상 (기납부 15.4% 외 추가분)"
+          ? "금융소득 " + Calc.formatWon(res.totalFinancial) + (res.dividendTaxCredit > 0 ? " · 배당세액공제 " + Calc.formatWon(res.dividendTaxCredit) + " 반영" : " → 종합과세 대상")
           : "연 2,000만 원 이하 분리과세 종결 (추가 납부 0원)"
       );
       setText("res-fin-total", Calc.formatWon(res.totalFinancial));
@@ -467,7 +485,8 @@
       { param: "cc", id: "car-cc" },
       { param: "age", id: "car-age" },
       { param: "prepay", id: "car-prepay" },
-      { param: "price", id: "car-price" }
+      { param: "price", id: "car-price" },
+      { param: "used", id: "car-used", type: "checkbox" }
     ];
 
     function compute() {
@@ -476,27 +495,31 @@
         cc: num("car-cc", 1998),
         carAge: num("car-age", 1),
         prepayMonth: num("car-prepay", 1),
-        carPrice: num("car-price", 3500) * 10000
+        carPrice: num("car-price", 3500) * 10000,
+        isUsedCar: checked("car-used")
       });
     }
 
     function update() {
       const t = val("car-type", "passenger");
       const ccField = $("car-cc-field");
-      if (ccField) ccField.hidden = t === "ev" || t === "van7";
+      if (ccField) ccField.hidden = t === "ev" || t === "van11" || t === "van7";
       const res = compute();
       setText("res-car-main", Calc.formatWon(res.finalCarTax));
       setText(
         "res-car-sub",
         res.prepayDiscount > 0
           ? "연납 할인 " + Calc.formatWon(res.prepayDiscount) + " 적용 · 차량 취득세 " + Calc.formatWon(res.finalAcqTax)
-          : "연간 자동차세 (교육세 포함) · 차량 취득세 " + Calc.formatWon(res.finalAcqTax)
+          : (res.carType === "van11" ? "연간 승합차 정액 자동차세 (교육세 면제)" : "연간 자동차세 (교육세 포함)") + " · 차량 취득세 " + Calc.formatWon(res.finalAcqTax)
       );
       setText("res-car-base", Calc.formatWon(res.discountedBase) + (res.ageDiscountRate > 0 ? " (차령 -" + Math.round(res.ageDiscountRate * 100) + "%)" : ""));
-      setText("res-car-edu", Calc.formatWon(res.localEduTax));
+      setText("res-car-edu", res.carType === "van11" ? "0원 (승합차 면제)" : Calc.formatWon(res.localEduTax));
       setText("res-car-annual", Calc.formatWon(res.annualCarTax));
       setText("res-car-prepay", negWon(res.prepayDiscount));
-      setText("res-car-acq-raw", Calc.formatWon(res.rawAcqTax) + " (" + Math.round(res.acqRate * 100) + "%)");
+      setText(
+        "res-car-acq-raw",
+        Calc.formatWon(res.rawAcqTax) + " (" + Math.round(res.acqRate * 100) + "%" + (res.isUsedCar ? "" : " · 공급가 기준") + ")"
+      );
       setText("res-car-acq-relief", negWon(res.acqRelief));
       setText("res-car-acq-final", Calc.formatWon(res.finalAcqTax));
     }

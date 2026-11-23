@@ -96,7 +96,7 @@ module.exports = function buildExtendedPages(ctx) {
                 <div class="input-wrap"><input id="ye-donation" type="number" min="0" step="10" value="0" /><span class="input-unit">만 원</span></div>
               </div>
             </details>
-            <p class="calc-note">2026년 종합소득세 8단계 세율(6~45%), 자녀세액공제(25·30·40만 원), 월세 공제(총급여 8,000만 이하 연 1,000만 한도)를 반영합니다.</p>
+            <p class="calc-note">2026년 종합소득세 8단계 세율(6~45%), 자녀세액공제(9세 이상·2016년 이전 출생, 25·30·40만 원), 월세 공제(총급여 8,000만 이하 연 1,000만 한도), 특별공제 vs 표준세액공제(13만 원) 유리 선택을 자동 반영합니다.</p>
           </div>
           <div class="sheet receipt">
             <h2 class="sheet-title">연말정산 환급액 산출</h2>
@@ -194,11 +194,11 @@ module.exports = function buildExtendedPages(ctx) {
       },
       {
         q: "의료비는 부양가족 공제를 받지 않은 배우자가 공제받아도 되나요?",
-        a: "네, 의료비는 기본공제 대상자 여부와 무관하게 실제 지출한 배우자가 공제받을 수 있습니다. 총급여 3% 문턱을 넘기기 쉬운 연봉 낮은 배우자에게 몰아주는 전략이 효과적입니다."
+        a: "배우자 본인의 의료비는 소득 요건과 무관하게 지출한 배우자가 공제받을 수 있습니다. 다만 자녀·부모님 등 부양가족의 의료비·교육비·보험료는 해당 가족의 기본공제를 받는 배우자만 공제 가능합니다."
       },
       {
         q: "자녀 교육비와 보험료도 따로 나눠서 공제받을 수 있나요?",
-        a: "아니요. 자녀의 교육비·보장성 보험료는 해당 자녀의 기본공제(150만 원)를 받는 배우자만 공제할 수 있습니다."
+        a: "아니요. 자녀의 교육비·보장성 보험료·기부금은 해당 자녀의 기본공제(150만 원)를 받는 배우자만 공제할 수 있습니다."
       }
     ];
 
@@ -224,7 +224,7 @@ module.exports = function buildExtendedPages(ctx) {
               <h1>${DATA.year} 맞벌이 부부 연말정산 절세 계산기</h1>
               <span class="meta-tag">최적 조합 자동 탐색</span>
             </div>
-            <p class="subtitle">부양가족과 의료비·교육비·카드를 누구에게 몰아줘야 부부 합산 세금이 가장 적은지 모든 조합을 자동 비교합니다.</p>
+            <p class="subtitle">부양가족과 의료비·교육비·카드를 누구에게 몰아줘야 부부 합산 세금이 가장 적은지 세법상 귀속 요건을 지켜 자동 비교합니다.</p>
           </header>
           <section class="calc-grid">
             <div class="sheet">
@@ -251,11 +251,11 @@ module.exports = function buildExtendedPages(ctx) {
               </div>
               <div class="field-row">
                 <div class="field">
-                  <label for="cp-medical">가족 의료비 합계</label>
+                  <label for="cp-medical">부부 본인 의료비 합계 (몰아주기 가능)</label>
                   <div class="input-wrap"><input id="cp-medical" type="number" min="0" step="50" value="300" /><span class="input-unit">만 원</span></div>
                 </div>
                 <div class="field">
-                  <label for="cp-education">자녀·가족 교육비 합계</label>
+                  <label for="cp-education">자녀·부양가족 교육비 (기본공제자 귀속)</label>
                   <div class="input-wrap"><input id="cp-education" type="number" min="0" step="50" value="200" /><span class="input-unit">만 원</span></div>
                 </div>
               </div>
@@ -263,7 +263,7 @@ module.exports = function buildExtendedPages(ctx) {
                 <label for="cp-card">생활비 카드·체크카드 지출 (한쪽 집중 가능액)</label>
                 <div class="input-wrap"><input id="cp-card" type="number" min="0" step="100" value="1500" /><span class="input-unit">만 원</span></div>
               </div>
-              <p class="calc-note">부양가족·의료비·교육비·카드의 모든 배분 경우의 수를 실시간 계산해 합산 결정세액이 최소가 되는 조합을 찾아줍니다.</p>
+              <p class="calc-note">부양가족 교육비는 기본공제를 받는 배우자에게만 귀속되는 세법 규정을 준수하며, 모든 합법 조합 중 합산 결정세액이 최소인 조합을 찾아줍니다.</p>
             </div>
             <div class="sheet receipt">
               <h2 class="sheet-title">맞벌이 최적 절세 조합</h2>
@@ -759,7 +759,15 @@ module.exports = function buildExtendedPages(ctx) {
             </div>
             <div class="field">
               <label class="checkbox-row"><input id="tr-onehome" type="checkbox" checked /><span>1세대 1주택 (12억 비과세 + 장기보유특별공제 최대 80%)</span></label>
-              <label class="checkbox-row"><input id="tr-heavy" type="checkbox" /><span>다주택 중과 가정 (+20%p, 장기보유특별공제 배제)</span></label>
+              <label class="checkbox-row"><input id="tr-need-reside" type="checkbox" /><span>취득 당시 조정대상지역 (1주택 비과세 시 2년 실거주 필수)</span></label>
+            </div>
+            <div class="field">
+              <label for="tr-heavy">다주택 중과 여부 (2026.5.9 중과 유예 종료)</label>
+              <select id="tr-heavy">
+                <option value="none" selected>일반 과세 (1주택 또는 비조정지역)</option>
+                <option value="two">조정대상지역 2주택 중과 (+20%p · 장특공제 배제)</option>
+                <option value="three">조정대상지역 3주택 이상 중과 (+30%p · 장특공제 배제)</option>
+              </select>
             </div>
           </div>
           <div class="sheet receipt">
@@ -1066,10 +1074,13 @@ module.exports = function buildExtendedPages(ctx) {
                 <button type="button" class="chip-btn" data-preset="5000">5,000만</button>
               </div>
               <div class="field">
+                <label class="checkbox-row"><input id="fin-domestic" type="checkbox" checked /><span>국내 법인 배당소득 (10% 그로스업·배당세액공제 적용 · 해외배당은 체크 해제)</span></label>
+              </div>
+              <div class="field">
                 <label for="fin-other">다른 종합소득금액 (근로·사업소득 과세표준 기준)</label>
                 <div class="input-wrap"><input id="fin-other" type="number" min="0" step="500" value="5000" /><span class="input-unit">만 원</span></div>
               </div>
-              <p class="calc-note">소득세법 제62조 비교과세 산식(2,000만 원 초과분 누진 합산 vs 전액 14% 중 큰 세액)으로 금융소득 추가세액을 산출합니다.</p>
+              <p class="calc-note">소득세법 제17조(10% 배당가산)·제56조(배당세액공제)·제62조(비교과세) 산식으로 5월 추가 세액을 산출합니다.</p>
             </div>
             <div class="sheet receipt">
               <h2 class="sheet-title">금융소득종합과세 산출</h2>
@@ -1123,13 +1134,13 @@ module.exports = function buildExtendedPages(ctx) {
             <div class="field">
               <label for="car-type">차량 구분</label>
               <select id="car-type">
-                <option value="passenger" ${defType === "passenger" ? "selected" : ""}>비영업용 승용차 (가솔린·하이브리드·디젤)</option>
+                <option value="passenger" ${defType === "passenger" ? "selected" : ""}>비영업용 승용차 (세단·SUV·7~9인승 포함)</option>
                 <option value="compact" ${defType === "compact" ? "selected" : ""}>경차 (1,000cc 이하 · 취득세 4% 75만 감면)</option>
                 <option value="ev" ${defType === "ev" ? "selected" : ""}>전기차 (자동차세 연 13만 · 취득세 140만 감면)</option>
-                <option value="van7" ${defType === "van7" ? "selected" : ""}>7~10인승 승합차 (정액)</option>
+                <option value="van11" ${defType === "van11" ? "selected" : ""}>11인승 이상 승합차 (연 65,000원 · 교육세 면제 · 취득세 5%)</option>
               </select>
             </div>
-            <div class="field" id="car-cc-field" ${defType === "ev" || defType === "van7" ? "hidden" : ""}>
+            <div class="field" id="car-cc-field" ${defType === "ev" || defType === "van11" ? "hidden" : ""}>
               <label for="car-cc">배기량 (cc)</label>
               <div class="input-wrap"><input id="car-cc" type="number" min="0" step="100" value="${defCc}" /><span class="input-unit">cc</span></div>
               <div class="preset-row" id="car-cc-presets">
@@ -1157,8 +1168,11 @@ module.exports = function buildExtendedPages(ctx) {
               </div>
             </div>
             <div class="field">
-              <label for="car-price">차량 취득가액 (취득세 계산용)</label>
+              <label for="car-price">차량 가격 (취득세 계산용 · 신차는 부가세 포함 출고가 입력)</label>
               <div class="input-wrap"><input id="car-price" type="number" min="0" step="100" value="${defPrice}" /><span class="input-unit">만 원</span></div>
+            </div>
+            <div class="field">
+              <label class="checkbox-row"><input id="car-used" type="checkbox" /><span>중고차 구매 (미체크 시 신차: 부가세 10% 제외 공급가액으로 취득세 계산)</span></label>
             </div>
           </div>
           <div class="sheet receipt">
