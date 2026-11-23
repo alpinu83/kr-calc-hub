@@ -1,5 +1,205 @@
 {
-  "checkedAt": null,
-  "note": "다음 실행 시 법제처 Open API 값으로 자동 초기화됩니다(첫 실행은 알림 없음).",
-  "laws": {}
+  "checkedAt": "2026-11-23",
+  "laws": {
+    "income-tax": {
+      "name": "소득세법",
+      "serial": "267581",
+      "promulgatedDate": "20241231",
+      "effectiveDate": "20280101",
+      "amendmentType": "일부개정",
+      "status": "시행예정",
+      "currentEffectiveDate": "20260701",
+      "scope": "연봉·퇴직금·해외주식·프리랜서 (세율·공제)"
+    },
+    "income-tax-decree": {
+      "name": "소득세법 시행령",
+      "serial": "269541",
+      "promulgatedDate": "20250228",
+      "effectiveDate": "20280101",
+      "amendmentType": "일부개정",
+      "status": "시행예정",
+      "currentEffectiveDate": "20261001",
+      "scope": "근로소득 간이세액표(별표2)·자녀 공제"
+    },
+    "local-tax": {
+      "name": "지방세법",
+      "serial": "289387",
+      "promulgatedDate": "20260908",
+      "effectiveDate": "20270909",
+      "amendmentType": "타법개정",
+      "status": "시행예정",
+      "currentEffectiveDate": "20260701",
+      "scope": "주택 취득세율·중과·지방교육세"
+    },
+    "local-tax-decree": {
+      "name": "지방세법 시행령",
+      "serial": "290815",
+      "promulgatedDate": "20260930",
+      "effectiveDate": "20261001",
+      "amendmentType": "일부개정",
+      "status": "현행",
+      "currentEffectiveDate": "20261001",
+      "scope": "중과 제외 주택·일시적 2주택"
+    },
+    "local-tax-special": {
+      "name": "지방세특례제한법",
+      "serial": "289389",
+      "promulgatedDate": "20260908",
+      "effectiveDate": "20270909",
+      "amendmentType": "타법개정",
+      "status": "시행예정",
+      "currentEffectiveDate": "20260602",
+      "scope": "생애최초·출산 취득세 감면"
+    },
+    "rural-special-tax": {
+      "name": "농어촌특별세법",
+      "serial": "285905",
+      "promulgatedDate": "20260512",
+      "effectiveDate": "20260512",
+      "amendmentType": "일부개정",
+      "status": "현행",
+      "currentEffectiveDate": "20260512",
+      "scope": "취득세 농어촌특별세"
+    },
+    "gift-tax": {
+      "name": "상속세 및 증여세법",
+      "serial": "276123",
+      "promulgatedDate": "20251001",
+      "effectiveDate": "20260102",
+      "amendmentType": "타법개정",
+      "status": "현행",
+      "currentEffectiveDate": "20260102",
+      "scope": "증여세 세율·공제·할증"
+    },
+    "tax-special": {
+      "name": "조세특례제한법",
+      "serial": "91270",
+      "promulgatedDate": "20090130",
+      "effectiveDate": "20280101",
+      "amendmentType": "타법개정",
+      "status": "시행예정",
+      "currentEffectiveDate": "20260918",
+      "scope": "해외주식 RIA 공제"
+    },
+    "national-pension": {
+      "name": "국민연금법",
+      "serial": "284451",
+      "promulgatedDate": "20260317",
+      "effectiveDate": "20280101",
+      "amendmentType": "타법개정",
+      "status": "시행예정",
+      "currentEffectiveDate": "20261020",
+      "scope": "국민연금 보험료율"
+    },
+    "health-insurance-decree": {
+      "name": "국민건강보험법 시행령",
+      "serial": "289701",
+      "promulgatedDate": "20260915",
+      "effectiveDate": "20270101",
+      "amendmentType": "일부개정",
+      "status": "시행예정",
+      "currentEffectiveDate": "20261001",
+      "scope": "건강보험료율(제44조)"
+    },
+    "ltc-insurance-decree": {
+      "name": "노인장기요양보험법 시행령",
+      "serial": "286011",
+      "promulgatedDate": "20260512",
+      "effectiveDate": "20260512",
+      "amendmentType": "일부개정",
+      "status": "현행",
+      "currentEffectiveDate": "20260512",
+      "scope": "장기요양보험료율"
+    },
+    "ltc-insurance": {
+      "name": "노인장기요양보험법",
+      "serial": "286217",
+      "promulgatedDate": "20260526",
+      "effectiveDate": "20261127",
+      "amendmentType": "일부개정",
+      "status": "시행예정",
+      "currentEffectiveDate": "20260526",
+      "scope": "장기요양보험료 산정 비율"
+    },
+    "insurance-premium-decree": {
+      "name": "고용보험 및 산업재해보상보험의 보험료징수 등에 관한 법률 시행령",
+      "serial": "280527",
+      "promulgatedDate": "20251223",
+      "effectiveDate": "20251223",
+      "amendmentType": "일부개정",
+      "status": "현행",
+      "currentEffectiveDate": "20251223",
+      "scope": "고용보험료율(근로자 0.9%)"
+    },
+    "employment-insurance": {
+      "name": "고용보험법",
+      "serial": "284449",
+      "promulgatedDate": "20260317",
+      "effectiveDate": "20280101",
+      "amendmentType": "일부개정",
+      "status": "시행예정",
+      "currentEffectiveDate": "20260918",
+      "scope": "실업급여 지급률·소정급여일수"
+    },
+    "employment-insurance-decree": {
+      "name": "고용보험법 시행령",
+      "serial": "288717",
+      "promulgatedDate": "20260818",
+      "effectiveDate": "20260918",
+      "amendmentType": "일부개정",
+      "status": "현행",
+      "currentEffectiveDate": "20260918",
+      "scope": "구직급여 상한(제68조)"
+    },
+    "retirement-benefit": {
+      "name": "근로자퇴직급여 보장법",
+      "serial": "284455",
+      "promulgatedDate": "20260317",
+      "effectiveDate": "20260918",
+      "amendmentType": "일부개정",
+      "status": "현행",
+      "currentEffectiveDate": "20260918",
+      "scope": "퇴직금·IRP 이전"
+    },
+    "labor-standards": {
+      "name": "근로기준법",
+      "serial": "286771",
+      "promulgatedDate": "20260609",
+      "effectiveDate": "20270610",
+      "amendmentType": "일부개정",
+      "status": "시행예정",
+      "currentEffectiveDate": "20261008",
+      "scope": "주휴수당·연장근로 가산"
+    },
+    "housing-lease-decree": {
+      "name": "주택임대차보호법 시행령",
+      "serial": "287183",
+      "promulgatedDate": "20260623",
+      "effectiveDate": "20260701",
+      "amendmentType": "타법개정",
+      "status": "현행",
+      "currentEffectiveDate": "20260701",
+      "scope": "전월세 전환율 상한(제9조)"
+    },
+    "minimum-wage": {
+      "name": "2027년 적용 최저임금 고시",
+      "serial": "2100000283564",
+      "promulgatedDate": "20260805",
+      "effectiveDate": "20270101",
+      "amendmentType": "제정",
+      "status": "",
+      "currentEffectiveDate": "20270101",
+      "scope": "주휴수당·실업급여 하한액(최저시급)"
+    },
+    "pension-income-cap": {
+      "name": "2026년도 공무원 전체의 기준소득월액 평균액 고시",
+      "serial": "2100000278474",
+      "promulgatedDate": "20260430",
+      "effectiveDate": "20260501",
+      "amendmentType": "전부개정",
+      "status": "",
+      "currentEffectiveDate": "20260501",
+      "scope": "국민연금 기준소득월액 상·하한"
+    }
+  }
 }
