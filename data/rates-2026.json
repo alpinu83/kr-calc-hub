@@ -584,5 +584,32 @@
       "number": "132",
       "desc": "임대차·근로 분쟁 무료 법률상담"
     }
-  ]
+  ],
+  "partners": {
+    "freelancer": {
+      "cta": "숨고에서 세무사 견적 받기",
+      "url": "https://click.linkprice.com/click.php?m=soomgo&a=A100710375&l=9999&l_cd1=3&l_cd2=0&tu=https%3A%2F%2Fsoomgo.com%2Fprices%2F%25ED%259A%258C%25EA%25B3%2584-%25EC%2584%25B8%25EB%25AC%25B4-%25EB%258C%2580%25ED%2596%2589",
+      "network": "LinkPrice",
+      "merchant": "soomgo",
+      "title": "종합소득세 신고, 세무사에게 맡기고 싶다면",
+      "description": "숨고에서 조건을 적으면 여러 세무사가 견적을 보내줍니다. 비교해 보고 고르면 됩니다."
+    },
+    "stockTax": {
+      "cta": "숨고에서 세무사 견적 받기",
+      "url": "https://click.linkprice.com/click.php?m=soomgo&a=A100710375&l=9999&l_cd1=3&l_cd2=0&tu=https%3A%2F%2Fsoomgo.com%2Fprices%2F%25ED%259A%258C%25EA%25B3%2584-%25EC%2584%25B8%25EB%25AC%25B4-%25EB%258C%2580%25ED%2596%2589",
+      "network": "LinkPrice",
+      "merchant": "soomgo",
+      "title": "해외주식 양도세 신고가 복잡하다면",
+      "description": "숨고에서 양도세 신고를 해 줄 세무사 견적을 여러 곳에서 받아 비교할 수 있습니다."
+    },
+    "giftTax": {
+      "cta": "숨고에서 세무사 견적 받기",
+      "url": "https://click.linkprice.com/click.php?m=soomgo&a=A100710375&l=9999&l_cd1=3&l_cd2=0&tu=https%3A%2F%2Fsoomgo.com%2Fprices%2F%25ED%259A%258C%25EA%25B3%2584-%25EC%2584%25B8%25EB%25AC%25B4-%25EB%258C%2580%25ED%2596%2589",
+      "network": "LinkPrice",
+      "merchant": "soomgo",
+      "title": "증여세 신고·절세 상담이 필요하다면",
+      "description": "숨고에서 증여세 신고를 해 줄 세무사 견적을 여러 곳에서 받아 비교할 수 있습니다."
+    }
+  },
+  "partnerDisclosure": "광고 · 제휴마케팅 링크로, 이 링크를 통해 이용하면 운영자가 수수료를 받을 수 있습니다."
 }
