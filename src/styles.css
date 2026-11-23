@@ -1133,3 +1133,8 @@ p, li, .subtitle, .dir-card p, .faq-item p, .calc-note, .result-note, .official-
   white-space: nowrap;
 }
 .partner-cta:hover { background: #111827; }
+
+/* 짧은 문구 균형 줄바꿈: 마지막 줄에 단어 하나만 남지 않도록 */
+.official-card span, .official-card strong, .dir-card p, .checkbox-hint, .field-hint, .prose-sheet li, .partner-body span, .affiliate-strip span, .result-sub, .stat-item span, summary {
+  text-wrap: balance;
+}

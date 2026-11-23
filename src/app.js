@@ -43,15 +43,24 @@
     el._timer = setTimeout(() => el.classList.remove("show"), 2000);
   }
 
+  // 한 글자 단어·숫자 단위가 줄 끝에 홀로 남지 않도록 줄바꿈 없는 공백으로 연결
+  function bindWords(text) {
+    return String(text)
+      .replace(/([0-9][0-9,.]*(?:만|억|천)?) (원|명|년|개월|일|시간|주|세|건|%)/g, "$1\u00A0$2")
+      .replace(/(?<=^|[\s(·,\u00A0])([가-힣]) (?=[가-힣0-9(A-Za-z])/g, "$1\u00A0")
+      .replace(/ ([×÷=+−]) /g, "\u00A0$1\u00A0")
+      .replace(/ · /g, "\u00A0· ");
+  }
+
   function setText(id, text) {
     const el = $(id);
-    if (el) el.textContent = text;
+    if (el) el.textContent = bindWords(text);
   }
 
   function setNote(id, text) {
     const el = $(id);
     if (!el) return;
-    el.textContent = text || "";
+    el.textContent = bindWords(text || "");
     el.hidden = !text;
   }
 
