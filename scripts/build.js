@@ -8,6 +8,7 @@ const Calc = require("../src/calculators");
 const ROOT = path.resolve(__dirname, "..");
 const DIST = path.join(ROOT, "dist");
 const DATA = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "rates-2026.json"), "utf8"));
+const TAX_TIPS = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "tax-tips-2026.json"), "utf8"));
 
 const BASE_URL = DATA.siteUrl.replace(/\/+$/, "");
 const BASE_PATH = (() => {
@@ -241,6 +242,48 @@ function renderRelatedCalcs(items) {
   `;
 }
 
+function renderTaxTipsSection(key) {
+  const cat = TAX_TIPS && TAX_TIPS.categories && TAX_TIPS.categories[key];
+  if (!cat || !cat.tips || !cat.tips.length) return "";
+  return `
+    <section class="section-block tips-section" aria-label="${escapeHtml(cat.title)}">
+      <div class="tips-head">
+        <div class="tips-head-title">
+          <span class="tips-kicker">절세 꿀팁 · ${DATA.year}년 기준</span>
+          <h2>${escapeHtml(cat.title)}</h2>
+        </div>
+        <a class="tips-more-link" href="/tips/#${escapeHtml(cat.slug)}">전체 세금 절세 모음 →</a>
+      </div>
+      ${cat.subtitle ? `<p class="tips-sub">${escapeHtml(cat.subtitle)}</p>` : ""}
+      <div class="tips-grid">
+        ${cat.tips
+          .map(
+            (tip, i) => `
+          <article class="tip-card">
+            <div class="tip-top">
+              <span class="tip-num">TIP ${String(i + 1).padStart(2, "0")}</span>
+              <span class="tip-tag">${escapeHtml(tip.tag)}</span>
+            </div>
+            <h3>${escapeHtml(tip.title)}</h3>
+            <p>${escapeHtml(tip.body)}</p>
+            ${tip.caution ? `<div class="tip-caution">주의 · ${escapeHtml(tip.caution)}</div>` : ""}
+          </article>`
+          )
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderResultActions(prefix) {
+  return `<div class="result-actions">
+          <button type="button" class="btn-ghost" id="copy-${prefix}-btn">결과 복사</button>
+          <button type="button" class="btn-ghost" id="link-${prefix}-btn">링크 복사</button>
+          <button type="button" class="btn-ghost" id="img-${prefix}-btn">이미지 저장</button>
+          <button type="button" class="btn-share" id="share-${prefix}-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>공유하기</button>
+        </div>`;
+}
+
 function renderLayout({
   routePath,
   title,
@@ -304,7 +347,8 @@ function renderLayout({
     { id: "stock-tax", label: "해외주식", href: "/stock-tax/" },
     { id: "real-estate", label: "취등록세", href: "/real-estate/" },
     { id: "gift-tax", label: "증여세", href: "/gift-tax/" },
-    { id: "jeonse", label: "전월세", href: "/jeonse/" }
+    { id: "jeonse", label: "전월세", href: "/jeonse/" },
+    { id: "tips", label: "절세꿀팁", href: "/tips/" }
   ];
 
   const breadcrumbHtml =
@@ -406,6 +450,7 @@ function renderLayout({
     <div class="container footer-inner">
       <div>${escapeHtml(DATA.siteName)} · ${DATA.year}년 세율·요율 기준 · 본 계산 결과는 참고용 추정치입니다.</div>
       <nav class="footer-links" aria-label="사이트 안내">
+        <a href="/tips/">절세 꿀팁 모음</a>
         <a href="/links/">공식 사이트 모음</a>
         <a href="/about/">사이트 소개 · 면책고지</a>
         <a href="/privacy/">개인정보처리방침</a>
@@ -552,9 +597,7 @@ function renderSalaryWidget(defaultManwon) {
             <tr class="total-row"><th>월 공제액 합계</th><td id="res-total-deduction">${negWon(res.totalDeduction)}</td></tr>
           </tbody>
         </table>
-        <div class="result-actions">
-          <button type="button" class="btn-ghost" id="copy-salary-btn">결과 복사</button>
-        </div>
+        ${renderResultActions("salary")}
       </div>
     </section>
   `;
@@ -610,6 +653,7 @@ function buildSalaryPages() {
         </header>
         ${renderSalaryWidget(5000)}
         ${renderAdSlot("calcMid")}
+        ${renderTaxTipsSection("salary")}
         ${renderAffiliateCard("salary")}
           ${renderOfficialLinks("salary")}
         ${matrixLinks(null)}
@@ -689,7 +733,8 @@ function buildSalaryPages() {
           ${renderSalaryWidget(manwon)}
           ${renderAdSlot("pseoMid")}
           ${salaryCompare}
-          ${renderAffiliateCard("salary")}
+          ${renderTaxTipsSection("salary")}
+        ${renderAffiliateCard("salary")}
           ${renderOfficialLinks("salary")}
           ${related}
           ${renderPrevNext(prev, next)}
@@ -747,9 +792,7 @@ function renderFreelancerWidget(defaultManwon) {
             <tr><th>최종 실수령액</th><td id="res-free-net">${Calc.formatWon(res.net)}</td></tr>
           </tbody>
         </table>
-        <div class="result-actions">
-          <button type="button" class="btn-ghost" id="copy-free-btn">결과 복사</button>
-        </div>
+        ${renderResultActions("free")}
       </div>
     </section>
   `;
@@ -798,6 +841,7 @@ function buildFreelancerPages() {
         </header>
         ${renderFreelancerWidget(300)}
         ${renderAdSlot("calcMid")}
+        ${renderTaxTipsSection("freelancer")}
         ${renderAffiliateCard("freelancer")}
           ${renderPartnerCard("freelancer")}
           ${renderOfficialLinks("freelancer")}
@@ -840,7 +884,8 @@ function buildFreelancerPages() {
           </header>
           ${renderFreelancerWidget(manwon)}
           ${renderAdSlot("pseoMid")}
-          ${renderAffiliateCard("freelancer")}
+          ${renderTaxTipsSection("freelancer")}
+        ${renderAffiliateCard("freelancer")}
           ${renderPartnerCard("freelancer")}
           ${renderOfficialLinks("freelancer")}
           ${renderPrevNext(prev, next)}
@@ -924,9 +969,7 @@ function renderStockTaxWidget(defaultProfitManwon) {
             <tr class="total-row"><th>세후 최종 순수익</th><td id="res-stock-after">${Calc.formatWon(res.afterTaxProfit)}</td></tr>
           </tbody>
         </table>
-        <div class="result-actions">
-          <button type="button" class="btn-ghost" id="copy-stock-btn">결과 복사</button>
-        </div>
+        ${renderResultActions("stock")}
       </div>
     </section>
   `;
@@ -983,6 +1026,7 @@ function buildStockTaxPages() {
         </header>
         ${renderStockTaxWidget(1000)}
         ${renderAdSlot("calcMid")}
+        ${renderTaxTipsSection("stockTax")}
         ${renderAffiliateCard("stockTax")}
           ${renderPartnerCard("stockTax")}
           ${renderOfficialLinks("stockTax")}
@@ -1059,7 +1103,8 @@ function buildStockTaxPages() {
           ${renderStockTaxWidget(manwon)}
           ${renderAdSlot("pseoMid")}
           ${stockCompare}
-          ${renderAffiliateCard("stockTax")}
+          ${renderTaxTipsSection("stockTax")}
+        ${renderAffiliateCard("stockTax")}
           ${renderPartnerCard("stockTax")}
           ${renderOfficialLinks("stockTax")}
           ${related}
@@ -1146,9 +1191,7 @@ function renderRealEstateWidget(defaultEok) {
             <tr class="total-row"><th>총 납부세액 합계</th><td id="res-re-sum">${Calc.formatWon(res.totalTax)}</td></tr>
           </tbody>
         </table>
-        <div class="result-actions">
-          <button type="button" class="btn-ghost" id="copy-re-btn">결과 복사</button>
-        </div>
+        ${renderResultActions("re")}
       </div>
     </section>
   `;
@@ -1200,6 +1243,7 @@ function buildRealEstatePages() {
         </header>
         ${renderRealEstateWidget(6)}
         ${renderAdSlot("calcMid")}
+        ${renderTaxTipsSection("realEstate")}
         ${renderAffiliateCard("realEstate")}
           ${renderOfficialLinks("realEstate")}
         ${matrixLinks(null)}
@@ -1289,7 +1333,8 @@ function buildRealEstatePages() {
           ${renderRealEstateWidget(eok)}
           ${renderAdSlot("pseoMid")}
           ${reCompare}
-          ${renderAffiliateCard("realEstate")}
+          ${renderTaxTipsSection("realEstate")}
+        ${renderAffiliateCard("realEstate")}
           ${renderOfficialLinks("realEstate")}
           ${related}
           ${renderPrevNext(prev, next)}
@@ -1368,10 +1413,11 @@ function buildJeonsePage() {
                 <tr><th>법정 상한 적용 시</th><td id="res-jw-cap">${cap.toFixed(1)}% → 월 ${Calc.formatWon(res.capMonthlyRent)}</td></tr>
               </tbody>
             </table>
-            <div class="result-actions"><button type="button" class="btn-ghost" id="copy-jw-btn">결과 복사</button></div>
+            ${renderResultActions("jw")}
           </div>
         </section>
         ${renderAdSlot("calcMid")}
+        ${renderTaxTipsSection("jeonse")}
         ${renderAffiliateCard("jeonse")}
           ${renderOfficialLinks("jeonse")}
         ${renderFaqSection(jeonseFaqs)}
@@ -1445,7 +1491,7 @@ function renderSeveranceWidget(defaultMonthlyManwon, defaultYears) {
             <tr class="total-row"><th>일시금 수령 시 세후</th><td id="res-sev-net">${Calc.formatWon(res.net)}</td></tr>
           </tbody>
         </table>
-        <div class="result-actions"><button type="button" class="btn-ghost" id="copy-sev-btn">결과 복사</button></div>
+        ${renderResultActions("sev")}
       </div>
     </section>
   `;
@@ -1501,6 +1547,7 @@ function buildSeverancePages() {
         </header>
         ${renderSeveranceWidget(350, 3)}
         ${renderAdSlot("calcMid")}
+        ${renderTaxTipsSection("severance")}
         ${renderAffiliateCard("severance")}
           ${renderOfficialLinks("severance")}
         ${matrixLinks(null)}
@@ -1576,7 +1623,8 @@ function buildSeverancePages() {
           ${renderSeveranceWidget(p.m, p.y)}
           ${renderAdSlot("pseoMid")}
           ${sevCompare}
-          ${renderAffiliateCard("severance")}
+          ${renderTaxTipsSection("severance")}
+        ${renderAffiliateCard("severance")}
           ${renderOfficialLinks("severance")}
           ${related}
           ${renderPrevNext(prev, next)}
@@ -1646,7 +1694,7 @@ function renderUnemploymentWidget(defaultMonthlyManwon, defaultYears) {
             <tr><th>월 환산 수령액 (30일 기준)</th><td id="res-unemp-monthly">${Calc.formatWon(res.monthlyBenefit)}</td></tr>
           </tbody>
         </table>
-        <div class="result-actions"><button type="button" class="btn-ghost" id="copy-unemp-btn">결과 복사</button></div>
+        ${renderResultActions("unemp")}
       </div>
     </section>
   `;
@@ -1712,6 +1760,7 @@ function buildUnemploymentPages() {
         </header>
         ${renderUnemploymentWidget(350, 3)}
         ${renderAdSlot("calcMid")}
+        ${renderTaxTipsSection("unemployment")}
         ${renderAffiliateCard("unemployment")}
         ${renderOfficialLinks("unemployment")}
         ${unempRelated}
@@ -1783,7 +1832,8 @@ function buildUnemploymentPages() {
           ${renderUnemploymentWidget(p.m, p.y)}
           ${renderAdSlot("pseoMid")}
           ${unempCompare}
-          ${renderAffiliateCard("unemployment")}
+          ${renderTaxTipsSection("unemployment")}
+        ${renderAffiliateCard("unemployment")}
           ${renderOfficialLinks("unemployment")}
           ${unempRelated}
           ${renderPrevNext(prev, next)}
@@ -1847,7 +1897,7 @@ function renderWeeklyHolidayWidget(defaultWage, defaultHours) {
             <tr><th>월 환산 급여</th><td id="res-wh-monthly">${Calc.formatWon(res.estimatedMonthlyPay)} (${res.monthlyPaidHours}시간)</td></tr>
           </tbody>
         </table>
-        <div class="result-actions"><button type="button" class="btn-ghost" id="copy-wh-btn">결과 복사</button></div>
+        ${renderResultActions("wh")}
       </div>
     </section>
   `;
@@ -1916,6 +1966,7 @@ function buildWeeklyHolidayPages() {
         </header>
         ${renderWeeklyHolidayWidget(min2026, 20)}
         ${renderAdSlot("calcMid")}
+        ${renderTaxTipsSection("weeklyHoliday")}
         ${renderAffiliateCard("weeklyHoliday")}
         ${renderOfficialLinks("weeklyHoliday")}
         ${whRelated}
@@ -1997,6 +2048,7 @@ function buildWeeklyHolidayPages() {
         ${renderWeeklyHolidayWidget(min2027, 40)}
         ${renderAdSlot("pseoMid")}
         ${compare2027Table}
+        ${renderTaxTipsSection("weeklyHoliday")}
         ${renderAffiliateCard("weeklyHoliday")}
         ${renderOfficialLinks("weeklyHoliday")}
         ${renderFaqSection(faqs2027)}
@@ -2065,7 +2117,8 @@ function buildWeeklyHolidayPages() {
           ${renderWeeklyHolidayWidget(p.w, p.h)}
           ${renderAdSlot("pseoMid")}
           ${whCompare}
-          ${renderAffiliateCard("weeklyHoliday")}
+          ${renderTaxTipsSection("weeklyHoliday")}
+        ${renderAffiliateCard("weeklyHoliday")}
           ${renderOfficialLinks("weeklyHoliday")}
           ${whRelated}
           ${renderPrevNext(prev, next)}
@@ -2148,7 +2201,7 @@ function renderGiftTaxWidget(defaultAmountManwon, defaultRelation) {
             <tr class="total-row"><th>신고세액공제 (3%)</th><td id="res-gift-credit">${negWon(res.voluntaryCredit)}</td></tr>
           </tbody>
         </table>
-        <div class="result-actions"><button type="button" class="btn-ghost" id="copy-gift-btn">결과 복사</button></div>
+        ${renderResultActions("gift")}
       </div>
     </section>
   `;
@@ -2205,6 +2258,7 @@ function buildGiftTaxPages() {
         </header>
         ${renderGiftTaxWidget(10000, "adultChild")}
         ${renderAdSlot("calcMid")}
+        ${renderTaxTipsSection("giftTax")}
         ${renderAffiliateCard("giftTax")}
           ${renderPartnerCard("giftTax")}
           ${renderOfficialLinks("giftTax")}
@@ -2290,7 +2344,8 @@ function buildGiftTaxPages() {
           ${renderGiftTaxWidget(c.amountManwon, c.relation)}
           ${renderAdSlot("pseoMid")}
           ${giftCompare}
-          ${renderAffiliateCard("giftTax")}
+          ${renderTaxTipsSection("giftTax")}
+        ${renderAffiliateCard("giftTax")}
           ${renderPartnerCard("giftTax")}
           ${renderOfficialLinks("giftTax")}
           ${related}
@@ -2376,6 +2431,15 @@ function buildHomePage() {
           </a>
         </section>
 
+        <aside class="tips-banner" aria-label="세금별 절세 꿀팁 안내">
+          <div>
+            <span class="tips-kicker">절세 가이드 · 9종 36가지 핵심 정리</span>
+            <strong>${DATA.year} 세금별 절세 꿀팁 한눈에 보기</strong>
+            <p>연말정산, 프리랜서 3.3%, 해외주식 양도세, 취등록세, 증여세, 퇴직금 IRP까지 합법적으로 세금을 줄이는 핵심 체크리스트를 모았습니다.</p>
+          </div>
+          <a class="tips-banner-cta" href="/tips/">절세 꿀팁 전체 보기 →</a>
+        </aside>
+
         ${renderAdSlot("homeMid")}
 
         <section class="section-block official-links">
@@ -2405,6 +2469,105 @@ function buildHomePage() {
             <a class="matrix-pill" href="/real-estate/6-eok/">6억 아파트 취등록세</a>
           </div>
         </section>
+      `
+    })
+  );
+}
+
+function buildTipsPage() {
+  const order = [
+    "salary",
+    "freelancer",
+    "stockTax",
+    "realEstate",
+    "giftTax",
+    "severance",
+    "unemployment",
+    "weeklyHoliday",
+    "jeonse"
+  ];
+  const categories = order
+    .map((key) => TAX_TIPS && TAX_TIPS.categories && TAX_TIPS.categories[key])
+    .filter(Boolean);
+  const totalTips = categories.reduce((acc, c) => acc + c.tips.length, 0);
+
+  const tipsFaqs = [
+    {
+      q: "연말정산이나 종합소득세 공제를 놓쳤으면 나중에 돌려받을 수 있나요?",
+      a: "네, 법정 신고기한이 지난 날부터 5년 이내에 국세청 홈택스(손택스)에서 '경정청구'를 신청하면 누락한 월세 세액공제·중소기업 청년 감면·부양가족 공제 등을 소급해 환급받을 수 있습니다."
+    },
+    {
+      q: "세금이 0원인 증여나 해외주식 수익도 신고해야 하나요?",
+      a: "증여세는 공제 한도(배우자 6억, 자녀 5,000만·2,000만 원) 이내라 납부세액이 0원이어도 신고해 두어야 10년 기산일과 향후 자금출처가 공식 인정됩니다. 해외주식은 수익 250만 원 이하로 납부세액이 없으면 가산세는 발생하지 않습니다."
+    },
+    {
+      q: "절세 팁을 적용하기 전 개인별 세액은 어디서 확인하나요?",
+      a: "각 세목별 섹션 우측의 계산기 바로가기에서 본인 금액과 조건을 먼저 시뮬레이션하고, 실제 신고·납부는 국세청 홈택스(126)나 위택스(지방세)에서 최종 확인하세요."
+    }
+  ];
+
+  const jumpPills = categories
+    .map((c) => `<a class="matrix-pill" href="#${escapeHtml(c.slug)}">${escapeHtml(c.shortLabel)}</a>`)
+    .join("");
+
+  const sectionsHtml = categories
+    .map(
+      (cat, idx) => `
+      <section class="section-block tips-hub-group" id="${escapeHtml(cat.slug)}" aria-label="${escapeHtml(cat.title)}">
+        <div class="tips-head">
+          <div class="tips-head-title">
+            <span class="tips-kicker">0${idx + 1} · ${escapeHtml(cat.shortLabel)}</span>
+            <h2>${escapeHtml(cat.title)}</h2>
+          </div>
+          <a class="tips-calc-btn" href="${escapeHtml(cat.calcHref)}">${escapeHtml(cat.calcLabel)} →</a>
+        </div>
+        ${cat.subtitle ? `<p class="tips-sub">${escapeHtml(cat.subtitle)}</p>` : ""}
+        <div class="tips-grid">
+          ${cat.tips
+            .map(
+              (tip, i) => `
+            <article class="tip-card">
+              <div class="tip-top">
+                <span class="tip-num">TIP ${String(i + 1).padStart(2, "0")}</span>
+                <span class="tip-tag">${escapeHtml(tip.tag)}</span>
+              </div>
+              <h3>${escapeHtml(tip.title)}</h3>
+              <p>${escapeHtml(tip.body)}</p>
+              ${tip.caution ? `<div class="tip-caution">주의 · ${escapeHtml(tip.caution)}</div>` : ""}
+            </article>`
+            )
+            .join("")}
+        </div>
+      </section>
+      ${idx === 2 || idx === 5 ? renderAdSlot("pseoMid") : ""}
+    `
+    )
+    .join("");
+
+  writePage(
+    "/tips/",
+    renderLayout({
+      routePath: "/tips/",
+      title: `${DATA.year} 세금별 절세 꿀팁 총정리 (${totalTips}가지 핵심 체크)`,
+      description: `${DATA.year}년 법령 기준 연봉·연말정산, 프리랜서 3.3%, 해외주식 양도세, 주택 취등록세, 증여세, 퇴직금 IRP, 실업급여, 전월세까지 세금별 절세 꿀팁 ${totalTips}가지를 한곳에 모았습니다.`,
+      activeNav: "tips",
+      priority: "0.9",
+      breadcrumbs: [{ label: "홈", href: "/" }, { label: "절세 꿀팁 모음", href: "/tips/" }],
+      faqs: tipsFaqs,
+      bodyHtml: `
+        <header class="page-head">
+          <div class="page-head-row">
+            <h1>${DATA.year} 세금별 절세 꿀팁 총정리</h1>
+            <span class="meta-tag">${categories.length}개 분야 · ${totalTips}가지 핵심 · ${escapeHtml(TAX_TIPS.updatedAt || DATA.updatedAt)} 기준</span>
+          </div>
+          <p class="subtitle">세목별로 가장 효과가 큰 공제·감면·신고 타이밍만 추렸습니다. 원하는 세금을 눌러 바로 이동하세요.</p>
+          <nav class="link-matrix" aria-label="세금별 절세 꿀팁 바로가기">
+            ${jumpPills}
+          </nav>
+        </header>
+        ${renderAdSlot("calcMid")}
+        ${sectionsHtml}
+        ${renderFaqSection(tipsFaqs)}
       `
     })
   );
@@ -2617,6 +2780,7 @@ function buildTrustPages() {
             <a class="matrix-pill" href="/real-estate/">주택 취등록세</a>
             <a class="matrix-pill" href="/gift-tax/">증여세</a>
             <a class="matrix-pill" href="/jeonse/">전월세 전환율</a>
+            <a class="matrix-pill" href="/tips/">절세 꿀팁 모음</a>
           </div>
         </section>
       `
@@ -2706,6 +2870,7 @@ function main() {
   buildUnemploymentPages();
   buildWeeklyHolidayPages();
   buildGiftTaxPages();
+  buildTipsPage();
   buildLinksPage();
   buildTrustPages();
   writeSeoFiles();

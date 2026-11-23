@@ -58,6 +58,7 @@ function verify() {
     ".nojekyll",
     "about/index.html",
     "privacy/index.html",
+    "tips/index.html",
     "weekly-holiday/2027-minimum-wage/index.html",
     "assets/styles.css",
     "assets/wage-tax-table-2026.js",
@@ -102,6 +103,7 @@ function verify() {
 
   const sitemap = fs.readFileSync(path.join(DIST, "sitemap.xml"), "utf8");
   assert(sitemap.includes(`<loc>${BASE_URL}/</loc>`), "Sitemap missing home URL");
+  assert(sitemap.includes(`<loc>${BASE_URL}/tips/</loc>`), "Sitemap missing /tips/");
   assert(sitemap.includes(`<loc>${BASE_URL}/about/</loc>`), "Sitemap missing /about/");
   assert(sitemap.includes(`<loc>${BASE_URL}/privacy/</loc>`), "Sitemap missing /privacy/");
   assert(
