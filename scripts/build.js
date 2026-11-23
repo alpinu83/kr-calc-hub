@@ -362,6 +362,35 @@ function renderLayout({
 </html>`;
 }
 
+// 한국어 줄바꿈 보정: 한 글자 단어(월·및·총·약 등)와 숫자+단위가 줄 끝/줄 처음에 홀로 남지 않도록 다음 단어와 붙임
+function bindShortWords(html) {
+  const bodyIdx = html.indexOf("<body");
+  if (bodyIdx < 0) return html;
+  const head = html.slice(0, bodyIdx);
+  const body = html.slice(bodyIdx);
+  const NB = "\u00A0";
+  // 태그 앞에 홀로 남는 한 글자 단어(약 <strong>, 및 <a> 등)를 다음 요소와 붙임
+  const body2 = body.replace(/(^|[\s>(·,])([가-힣]) (?=<(?:strong|a|span|b|em)\b)/g, "$1$2" + NB);
+  const parts = body2.split(/(<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<[^>]+>)/);
+  for (let i = 0; i < parts.length; i++) {
+    const t = parts[i];
+    if (!t || t.startsWith("<")) continue;
+    parts[i] = t
+      // 숫자(+만/억/천) 뒤 단위
+      .replace(/([0-9][0-9,.]*(?:만|억|천)?) (원|명|년|개월|일|시간|주|세|건|채|%)/g, "$1" + NB + "$2")
+      .replace(/([0-9]억) (?=[0-9])/g, "$1" + NB)
+      .replace(/ ([×÷=+−]) /g, NB + "$1" + NB)
+      .replace(/ · /g, NB + "· ")
+      .replace(/(\d{4}\.) (\d{1,2}\.) (\d{1,2}\.)/g, "$1" + NB + "$2" + NB + "$3")
+      .replace(/(20\d{2}) (?=[가-힣])/g, "$1" + NB)
+      // 한 글자 단어는 뒤 단어와 붙임 (월 실수령액, 및 세전, 총 납부 등)
+      .replace(/(?<=^|[\s(·,\u00A0])([가-힣]) (?=[가-힣0-9(A-Za-z])/g, "$1" + NB)
+      // 문장 끝 한 글자 + 마침표 앞 단어 묶기 방지용: '~할 수 있습니다' 등 '수' 결합
+      .replace(/ (수|것|때|중|후|전|내|외|분|등) /g, NB + "$1 ");
+  }
+  return head + parts.join("");
+}
+
 function applyBasePath(html) {
   return BASE_PATH ? html.replace(/\b(href|src)="\/(?!\/)/g, `$1="${BASE_PATH}/`) : html;
 }
@@ -370,12 +399,12 @@ function writePage(routePath, html) {
   const rel = routePath.replace(/^\/+/, "");
   const outDir = rel ? path.join(DIST, rel) : DIST;
   ensureDir(outDir);
-  fs.writeFileSync(path.join(outDir, "index.html"), applyBasePath(html), "utf8");
+  fs.writeFileSync(path.join(outDir, "index.html"), bindShortWords(applyBasePath(html)), "utf8");
 }
 
 function writeRootFile(fileName, html) {
   ensureDir(DIST);
-  fs.writeFileSync(path.join(DIST, fileName), applyBasePath(html), "utf8");
+  fs.writeFileSync(path.join(DIST, fileName), bindShortWords(applyBasePath(html)), "utf8");
 }
 
 /* 1. SALARY */
@@ -519,7 +548,7 @@ function buildSalaryPages() {
             <h1>${DATA.year} 연봉 실수령액 계산기</h1>
             <span class="meta-tag">기준 ${DATA.updatedAt}</span>
           </div>
-          <p class="subtitle">연봉, 비과세액, 공제대상가족·8~20세 자녀 수에 따른 4대보험과 간이세액표 기준 근로소득세, 월 실수령액을 계산합니다.</p>
+          <p class="subtitle">연봉을 넣으면 4대보험과 근로소득세를 뺀 월 실수령액을 계산합니다.</p>
         </header>
         ${renderSalaryWidget(5000)}
         ${renderAdSlot("calcMid")}
@@ -671,7 +700,7 @@ function buildFreelancerPages() {
       bodyHtml: `
         <header class="page-head">
           <h1>프리랜서 3.3% 원천징수 계산기</h1>
-          <p class="subtitle">사업소득세 3%와 지방소득세 0.3% 공제 후 실수령액 및 세전 계약금 역산을 계산합니다.</p>
+          <p class="subtitle">3.3%를 떼고 받는 금액과, 원하는 실수령액에 맞는 세전 금액을 계산합니다.</p>
         </header>
         ${renderFreelancerWidget(300)}
         ${renderAdSlot("calcMid")}
@@ -856,7 +885,7 @@ function buildStockTaxPages() {
       bodyHtml: `
         <header class="page-head">
           <h1>해외주식 양도소득세 계산기</h1>
-          <p class="subtitle">연간 기본공제 250만 원과 손익통산, 2026년 RIA 감면을 적용한 양도세(20%) + 지방소득세(양도세의 10%)를 산출합니다.</p>
+          <p class="subtitle">1년 동안의 해외주식 매매 손익으로 내야 할 양도소득세를 계산합니다.</p>
         </header>
         ${renderStockTaxWidget(1000)}
         ${renderAdSlot("calcMid")}
@@ -1029,7 +1058,7 @@ function buildRealEstatePages() {
       bodyHtml: `
         <header class="page-head">
           <h1>아파트·주택 취등록세 계산기</h1>
-          <p class="subtitle">6억·9억 구간별 표준세율, 조정대상지역 다주택 중과, 지방교육세·농어촌특별세와 생애최초·출산 감면을 계산합니다.</p>
+          <p class="subtitle">집값과 보유 주택 수로 취득세, 지방교육세, 농어촌특별세를 계산합니다.</p>
         </header>
         ${renderRealEstateWidget(6)}
         ${renderAdSlot("calcMid")}
@@ -1102,7 +1131,7 @@ function buildJeonsePage() {
       bodyHtml: `
         <header class="page-head">
           <h1>전월세 전환율 계산기</h1>
-          <p class="subtitle">전세 보증금과 월세 보증금 차액에 전환율을 적용해 월세를 계산하고, 법정 상한(기준금리 ${res.baseRate.toFixed(2)}% + 2%p = ${cap.toFixed(1)}%) 초과 여부를 확인합니다.</p>
+          <p class="subtitle">전세를 월세로 바꿀 때의 월세와 법정 상한(${cap.toFixed(1)}%)을 넘는지 확인합니다.</p>
         </header>
         <section class="calc-grid">
           <div class="sheet">
@@ -1271,7 +1300,7 @@ function buildSeverancePages() {
       bodyHtml: `
         <header class="page-head">
           <h1>퇴직금 계산기</h1>
-          <p class="subtitle">퇴직 전 3개월 임금으로 1일 평균임금과 법정 퇴직금을 구하고, 퇴직소득세와 IRP 이전(과세이연) 여부를 함께 보여줍니다.</p>
+          <p class="subtitle">퇴직 전 3개월 월급과 근무 기간으로 법정 퇴직금과 퇴직소득세를 계산합니다.</p>
         </header>
         ${renderSeveranceWidget(350, 3)}
         ${renderAdSlot("calcMid")}
@@ -1412,7 +1441,7 @@ function buildUnemploymentPages() {
       bodyHtml: `
         <header class="page-head">
           <h1>${DATA.year} 실업급여 계산기</h1>
-          <p class="subtitle">고용보험 1일 구직급여 상·하한액과 소정급여일수 기준으로 총 예상 수령액을 산출합니다.</p>
+          <p class="subtitle">퇴직 전 월급과 고용보험 가입 기간으로 받을 실업급여를 계산합니다.</p>
         </header>
         ${renderUnemploymentWidget(350, 3)}
         ${renderAdSlot("calcMid")}
@@ -1546,7 +1575,7 @@ function buildWeeklyHolidayPages() {
       bodyHtml: `
         <header class="page-head">
           <h1>${DATA.year} 주휴수당 계산기</h1>
-          <p class="subtitle">주 15시간 이상 개근 시 발생하는 법정 주휴수당과 월 환산 급여를 계산합니다.</p>
+          <p class="subtitle">시급과 주간 근무시간으로 주휴수당과 월급을 계산합니다.</p>
         </header>
         ${renderWeeklyHolidayWidget(DATA.weeklyHoliday.minimumWage2026, 20)}
         ${renderAdSlot("calcMid")}
@@ -1633,7 +1662,7 @@ function renderGiftTaxWidget(defaultAmountManwon, defaultRelation) {
         <details class="calc-details">
           <summary>10년 내 이전 증여가 있는 경우</summary>
           <div class="field">
-            <label for="gift-used-ded">같은 그룹에서 이미 사용한 증여재산공제 <span class="field-hint">예: 아버지·어머니·조부모 합산</span></label>
+            <label for="gift-used-ded">같은 그룹에서 이미 사용한 증여재산공제 <span class="field-hint">예: 부모님, 조부모님 합산</span></label>
             <div class="input-wrap"><input id="gift-used-ded" type="number" min="0" step="500" value="0" /><span class="input-unit">만 원</span></div>
           </div>
           <div class="field">
@@ -1715,7 +1744,7 @@ function buildGiftTaxPages() {
       bodyHtml: `
         <header class="page-head">
           <h1>${DATA.year} 증여세 계산기</h1>
-          <p class="subtitle">받는 사람 기준 10년 공제 한도, 혼인·출산 공제, 세대생략 할증, 누진세율과 3개월 이내 신고세액공제 3%를 반영해 계산합니다.</p>
+          <p class="subtitle">받는 금액과 주는 사람과의 관계로 내야 할 증여세를 계산합니다.</p>
         </header>
         ${renderGiftTaxWidget(10000, "adultChild")}
         ${renderAdSlot("calcMid")}
@@ -1843,7 +1872,7 @@ function buildHomePage() {
         <section class="section-block official-links">
           <h2>신고·신청은 공식 사이트에서</h2>
           <div class="official-grid">
-            <a class="official-card" href="https://www.hometax.go.kr" target="_blank" rel="noopener noreferrer"><strong>국세청 홈택스 <span aria-hidden="true">↗</span></strong><span>연말정산·종합소득세·양도세·증여세 신고</span></a>
+            <a class="official-card" href="https://www.hometax.go.kr" target="_blank" rel="noopener noreferrer"><strong>국세청 홈택스 <span aria-hidden="true">↗</span></strong><span>연말정산, 종합소득세, 양도세, 증여세 신고</span></a>
             <a class="official-card" href="https://www.wetax.go.kr" target="_blank" rel="noopener noreferrer"><strong>위택스 <span aria-hidden="true">↗</span></strong><span>취득세 등 지방세 신고·납부</span></a>
             <a class="official-card" href="https://www.work24.go.kr" target="_blank" rel="noopener noreferrer"><strong>고용24 <span aria-hidden="true">↗</span></strong><span>실업급여 신청·실업인정</span></a>
             <a class="official-card" href="https://www.4insure.or.kr" target="_blank" rel="noopener noreferrer"><strong>4대사회보험 정보연계센터 <span aria-hidden="true">↗</span></strong><span>4대보험료 모의계산·가입내역</span></a>
@@ -1909,7 +1938,7 @@ function buildLinksPage() {
       bodyHtml: `
         <header class="page-head">
           <h1>세금·노동 공식 사이트 모음</h1>
-          <p class="subtitle">계산한 뒤 실제 신고·신청·조회를 할 수 있는 정부·공공기관 사이트입니다. 모두 공식 주소로 연결되며 제휴·광고 링크가 아닙니다.</p>
+          <p class="subtitle">계산한 뒤 실제로 신고하고 신청할 수 있는 정부·공공기관 사이트입니다. 모두 공식 주소이며 광고 링크가 아닙니다.</p>
         </header>
         ${groups
           .map(
@@ -1967,7 +1996,7 @@ function buildTrustPages() {
             <h1>${escapeHtml(DATA.siteName)} 소개 · 면책고지</h1>
             <span class="meta-tag">${DATA.year}년 세율·요율 기준</span>
           </div>
-          <p class="subtitle">복잡한 한국 세금·4대보험·부동산·근로 급여 계산을 누구나 빠르고 투명하게 확인할 수 있도록 만든 무료 계산기 허브입니다.</p>
+          <p class="subtitle">세금, 4대보험, 부동산, 급여 계산을 누구나 쉽게 해볼 수 있도록 만든 무료 계산기입니다.</p>
         </header>
 
         <article class="prose-sheet">
@@ -1999,7 +2028,7 @@ function buildTrustPages() {
           <p>${escapeHtml(DATA.siteName)}의 모든 계산 결과는 일반적인 법정 요율을 적용한 <strong>참고용 추정치</strong>입니다. 비과세 항목 구성, 부양가족·자녀 세액공제, 생애최초·신혼부부 감면, 조정대상지역 여부, 과거 10년 내 합산 증여 이력 등 개인별 특수 조건에 따라 실제 신고·납부 세액과 차이가 발생할 수 있습니다. 실제 세무 신고나 계약 결정 전에는 반드시 관할 세무서, 홈택스 모의계산 또는 세무 전문가의 확인을 받으시기 바랍니다.</p>
 
           <h2>4. 오류 제보 및 문의</h2>
-          <p>계산 공식 오류 제보, 신규 계산기 제안, 세율 개정 반영 요청은 이메일(${contactLink})로 보내주시면 확인 후 반영합니다.</p>
+          <p>계산 공식 오류 제보, 신규 계산기 제안, 세율 개정 반영 요청은 이메일로 보내주시면 확인 후 반영합니다. 문의: ${contactLink}</p>
         </article>
       `
     })
@@ -2043,7 +2072,7 @@ function buildTrustPages() {
           <p>본 사이트에는 국세청 홈택스, 위택스, 고용24 등 외부 공식 기관 또는 제휴 안내 페이지로 연결되는 링크가 포함되어 있습니다. 외부 사이트 이동 후의 개인정보 처리는 해당 사이트의 개인정보처리방침을 따릅니다.</p>
 
           <h2>4. 개인정보 보호 문의</h2>
-          <p>본 방침에 관한 문의 사항은 이메일(${contactLink})로 접수할 수 있으며, 법령 또는 서비스 변경에 따라 방침이 개정될 경우 본 페이지를 통해 공지합니다.</p>
+          <p>본 방침에 관한 문의는 이메일 ${contactLink} 로 받으며, 법령 또는 서비스 변경에 따라 방침이 개정될 경우 본 페이지를 통해 공지합니다.</p>
         </article>
       `
     })
