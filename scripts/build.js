@@ -841,6 +841,7 @@ function buildStockTaxPages() {
             <p class="subtitle">기본공제 250만 원 적용 시 납부 예상 세액은 <strong>${Calc.formatWon(res.totalTax)}</strong>입니다. (RIA 감면 미적용 기준)</p>
           </header>
           ${renderStockTaxWidget(manwon)}
+          ${renderAdSlot("pseoMid")}
           ${renderAffiliateCard("stockTax")}
           ${renderPrevNext(prev, next)}
           ${matrixLinks(manwon)}
@@ -1008,6 +1009,7 @@ function buildRealEstatePages() {
             <p class="subtitle">1주택(전용 85㎡ 이하, 감면 미적용) 기준 총 납부 세액은 <strong>${Calc.formatWon(res.totalTax)}</strong>입니다. 다주택·감면은 아래 계산기에서 선택하세요.</p>
           </header>
           ${renderRealEstateWidget(eok)}
+          ${renderAdSlot("pseoMid")}
           ${renderAffiliateCard("realEstate")}
           ${renderPrevNext(prev, next)}
           ${matrixLinks(eok)}
@@ -1087,6 +1089,7 @@ function buildJeonsePage() {
             <div class="result-actions"><button type="button" class="btn-ghost" id="copy-jw-btn">결과 복사</button></div>
           </div>
         </section>
+        ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("jeonse")}
         ${renderFaqSection(jeonseFaqs)}
       `
@@ -1245,6 +1248,7 @@ function buildSeverancePages() {
             <p class="subtitle">3개월 91일·상여금 없음 기준 법정 퇴직금은 약 <strong>${Calc.formatWon(res.gross)}</strong>입니다. ${res.irpRequired ? "IRP로 세전 전액이 입금되고" : "일시금으로 받으면"} 퇴직소득세 등 ${Calc.formatWon(res.totalTax)}${res.irpRequired ? "는 인출 시까지 이연됩니다" : "를 뺀 실수령액은 " + Calc.formatWon(res.net) + "입니다"}.</p>
           </header>
           ${renderSeveranceWidget(p.m, p.y)}
+          ${renderAdSlot("pseoMid")}
           ${renderAffiliateCard("severance")}
           ${renderPrevNext(prev, next)}
           ${matrixLinks(p.slug)}
@@ -1382,6 +1386,7 @@ function buildUnemploymentPages() {
             <p class="subtitle">만 50세 미만·1일 8시간 근무 기준 1일 ${Calc.formatWon(res.dailyBenefit)}, 총 ${res.benefitDays}일간 <strong>${Calc.formatWon(res.totalBenefit)}</strong> 수령이 예상됩니다.</p>
           </header>
           ${renderUnemploymentWidget(p.m, p.y)}
+          ${renderAdSlot("pseoMid")}
           ${renderAffiliateCard("unemployment")}
           ${renderPrevNext(prev, next)}
           ${matrixLinks(p.slug)}
@@ -1513,6 +1518,7 @@ function buildWeeklyHolidayPages() {
             <p class="subtitle">예상 주휴수당은 <strong>${Calc.formatWon(res.holidayPay)}</strong>, 주휴 포함 주급은 ${Calc.formatWon(res.totalWeeklyPay)}입니다.</p>
           </header>
           ${renderWeeklyHolidayWidget(p.w, p.h)}
+          ${renderAdSlot("pseoMid")}
           ${renderAffiliateCard("weeklyHoliday")}
           ${renderPrevNext(prev, next)}
           ${matrixLinks(p.slug)}
@@ -1682,6 +1688,7 @@ function buildGiftTaxPages() {
             <p class="subtitle">증여재산공제 ${Calc.formatWon(res.deductionApplied)} 적용 및 자진신고 3% 공제 시 납부세액은 <strong>${Calc.formatWon(res.finalTax)}</strong>입니다.</p>
           </header>
           ${renderGiftTaxWidget(c.amountManwon, c.relation)}
+          ${renderAdSlot("pseoMid")}
           ${renderAffiliateCard("giftTax")}
           ${renderPrevNext(prev, next)}
           ${matrixLinks(c.slug)}
