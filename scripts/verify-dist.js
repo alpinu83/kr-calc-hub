@@ -55,21 +55,28 @@ function verify() {
     "rss.xml",
     "robots.txt",
     "ads.txt",
+    "llms.txt",
     ".nojekyll",
     "about/index.html",
     "privacy/index.html",
     "tips/index.html",
     "year-end-tax/index.html",
+    "year-end-tax/5000-manwon/index.html",
     "couple-tax/index.html",
+    "couple-tax/7000-5000/index.html",
     "business-tax/index.html",
     "inheritance-tax/index.html",
     "transfer-tax/index.html",
     "vat/index.html",
+    "vat/6000-manwon/index.html",
     "financial-tax/index.html",
+    "financial-tax/3000-manwon/index.html",
     "car-tax/index.html",
     "other-income/index.html",
+    "other-income/100-manwon/index.html",
     "holding-tax/index.html",
     "eitc/index.html",
+    "eitc/dual-2500/index.html",
     "weekly-holiday/2027-minimum-wage/index.html",
     "assets/styles.css",
     "assets/wage-tax-table-2026.js",
@@ -80,12 +87,16 @@ function verify() {
     "assets/favicon.svg",
     "assets/og-image.svg"
   ];
+  const ratesData = JSON.parse(fs.readFileSync(path.join(ROOT, "data/rates-2026.json"), "utf8"));
+  if (ratesData.verification && ratesData.verification.indexNowKey) {
+    requiredFiles.push(`${ratesData.verification.indexNowKey}.txt`);
+  }
   for (const rel of requiredFiles) {
     assert(fs.existsSync(path.join(DIST, rel)), `Missing required dist file: ${rel}`);
   }
 
   const htmlFiles = walkHtml(DIST);
-  assert(htmlFiles.length >= 210, `Expected at least 210 HTML files, found ${htmlFiles.length}`);
+  assert(htmlFiles.length >= 255, `Expected at least 255 HTML files, found ${htmlFiles.length}`);
 
   let checkedLinks = 0;
   for (const file of htmlFiles) {

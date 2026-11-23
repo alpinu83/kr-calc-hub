@@ -144,6 +144,16 @@ module.exports = function buildExtendedPages(ctx) {
       { title: "전월세 전환율", desc: "월세 세액공제와 주거비 비교", href: "/jeonse/" }
     ]);
 
+    const grossPresets = [3000, 3500, 4000, 4500, 5000, 6000, 7000, 8000, 9000, 10000];
+    const matrixLinks = (current) => `
+      <section class="section-block">
+        <h2>연봉별 연말정산 예상 환급액 바로가기</h2>
+        <div class="link-matrix">
+          ${grossPresets.map((m) => `<a class="matrix-pill ${current === m ? "current" : ""}" href="/year-end-tax/${m}-manwon/">연봉 ${formatKoreanManwonLabel(m)}</a>`).join("")}
+        </div>
+      </section>
+    `;
+
     writePage(
       "/year-end-tax/",
       renderLayout({
@@ -168,75 +178,107 @@ module.exports = function buildExtendedPages(ctx) {
           ${renderAffiliateCard("yearEndTax")}
           ${renderOfficialLinks("yearEndTax")}
           ${related}
+          ${matrixLinks(null)}
           ${renderFaqSection(faqs)}
         `
       })
     );
+
+    grossPresets.forEach((m, idx) => {
+      const label = formatKoreanManwonLabel(m);
+      const base = Calc.calcYearEndTax({ gross: m * 10000, dependents: 1 });
+      const mid = Calc.calcYearEndTax({ gross: m * 10000, dependents: 1, creditCard: 1200 * 10000, debitCash: 600 * 10000, pensionIrp: 300 * 10000 });
+      const full = Calc.calcYearEndTax({ gross: m * 10000, dependents: 1, creditCard: 1200 * 10000, debitCash: 800 * 10000, pensionIrp: 600 * 10000, monthlyRentAnnual: m <= 8000 ? 600 * 10000 : 0 });
+      const fam = Calc.calcYearEndTax({ gross: m * 10000, dependents: 3, children: 2, creditCard: 1500 * 10000, debitCash: 800 * 10000, pensionIrp: 300 * 10000 });
+      const prev = idx > 0 ? { href: `/year-end-tax/${grossPresets[idx - 1]}-manwon/`, label: `연봉 ${formatKoreanManwonLabel(grossPresets[idx - 1])}` } : null;
+      const next = idx < grossPresets.length - 1 ? { href: `/year-end-tax/${grossPresets[idx + 1]}-manwon/`, label: `연봉 ${formatKoreanManwonLabel(grossPresets[idx + 1])}` } : null;
+      const fmtRef = (r) => (r.refundAmount >= 0 ? "환급 +" : "추가납부 -") + Calc.formatWon(Math.abs(r.refundAmount));
+      const cmp = renderCompareTable({
+        title: `연봉 ${label} 공제 유형별 연말정산 환급액 비교`,
+        subtitle: "간이세액표 100% 원천징수 추정 기준이며, 공제 항목에 따라 최종 결정세액과 환급액이 크게 달라집니다.",
+        headers: [
+          { label: "공제 시나리오" },
+          { label: "과세표준", num: true },
+          { label: "결정세액 합계", num: true },
+          { label: "예상 환급 / 납부", num: true }
+        ],
+        rows: [
+          { current: false, cells: ["1인 기본 공제만 (4대보험·인적)", Calc.formatWon(base.taxBase), Calc.formatWon(base.determinedTotalTax), fmtRef(base)] },
+          { current: true, cells: ["1인 카드 1,800만 + 연금 300만", Calc.formatWon(mid.taxBase), Calc.formatWon(mid.determinedTotalTax), fmtRef(mid)] },
+          { current: false, cells: [m <= 8000 ? "1인 카드 2,000만 + 연금 600만 + 월세 600만" : "1인 카드 2,000만 + 연금 600만", Calc.formatWon(full.taxBase), Calc.formatWon(full.determinedTotalTax), fmtRef(full)] },
+          { current: false, cells: ["부양가족 3명(자녀 2명) + 연금 300만", Calc.formatWon(fam.taxBase), Calc.formatWon(fam.determinedTotalTax), fmtRef(fam)] }
+        ]
+      });
+      writePage(
+        `/year-end-tax/${m}-manwon/`,
+        renderLayout({
+          routePath: `/year-end-tax/${m}-manwon/`,
+          title: `${DATA.year} 연봉 ${label} 연말정산 환급액 계산 (${fmtRef(mid)})`,
+          description: `2026년 총급여 ${label} 직장인의 카드·연금저축·월세·자녀 공제별 연말정산 결정세액과 예상 환급액(${fmtRef(mid)})을 계산합니다.`,
+          activeNav: "year-end-tax",
+          priority: "0.8",
+          breadcrumbs: [
+            { label: "홈", href: "/" },
+            { label: "연말정산 계산기", href: "/year-end-tax/" },
+            { label: `연봉 ${label}`, href: `/year-end-tax/${m}-manwon/` }
+          ],
+          faqs,
+          bodyHtml: `
+            <header class="page-head">
+              <h1>${DATA.year} 연봉 ${label} 연말정산 환급액</h1>
+              <p class="subtitle">카드 1,800만 원·연금저축 300만 원 납입 기준 결정세액은 <strong>${Calc.formatWon(mid.determinedTotalTax)}</strong>, 예상 정산액은 <strong>${fmtRef(mid)}</strong>입니다.</p>
+            </header>
+            ${renderWidget(m)}
+            ${renderAdSlot("pseoMid")}
+            ${cmp}
+            ${renderTaxTipsSection("yearEndTax")}
+            ${renderAffiliateCard("yearEndTax")}
+            ${renderOfficialLinks("yearEndTax")}
+            ${related}
+            ${renderPrevNext(prev, next)}
+            ${matrixLinks(m)}
+          `
+        })
+      );
+    });
   }
 
   /* 11. 맞벌이 부부 연말정산 절세 계산기 */
   function buildCoupleTaxPage() {
-    const res = Calc.calcCoupleTax({
-      husbandGross: 7000 * 10000,
-      wifeGross: 4500 * 10000,
-      children: 1,
-      otherDeps: 1,
-      sharedMedical: 300 * 10000,
-      sharedEducation: 200 * 10000,
-      sharedCard: 1500 * 10000
-    });
-    const b = res.best;
-
-    const faqs = [
-      {
-        q: "맞벌이 부부는 무조건 연봉 높은 쪽에 부양가족을 몰아주는 게 유리한가요?",
-        a: "부부 연봉 차이가 크면 고소득자에게 몰아주는 것이 유리하지만, 연봉이 비슷하거나 공제 항목이 많으면 두 사람의 과세표준 누진구간(15%·24%·35%)을 함께 낮추도록 나누어 배정하는 편이 합산 세금이 더 적게 나오는 경우가 많습니다."
-      },
-      {
-        q: "의료비는 부양가족 공제를 받지 않은 배우자가 공제받아도 되나요?",
-        a: "배우자 본인의 의료비는 소득 요건과 무관하게 지출한 배우자가 공제받을 수 있습니다. 다만 자녀·부모님 등 부양가족의 의료비·교육비·보험료는 해당 가족의 기본공제를 받는 배우자만 공제 가능합니다."
-      },
-      {
-        q: "자녀 교육비와 보험료도 따로 나눠서 공제받을 수 있나요?",
-        a: "아니요. 자녀의 교육비·보장성 보험료·기부금은 해당 자녀의 기본공제(150만 원)를 받는 배우자만 공제할 수 있습니다."
-      }
+    const couplePresets = [
+      { slug: "5000-4000", h: 5000, w: 4000 },
+      { slug: "6000-4000", h: 6000, w: 4000 },
+      { slug: "7000-4000", h: 7000, w: 4000 },
+      { slug: "7000-5000", h: 7000, w: 5000 },
+      { slug: "8000-5000", h: 8000, w: 5000 },
+      { slug: "8000-6000", h: 8000, w: 6000 },
+      { slug: "10000-5000", h: 10000, w: 5000 },
+      { slug: "10000-7000", h: 10000, w: 7000 }
     ];
 
-    const related = renderRelatedCalcs([
-      { title: "연말정산 환급액 계산기", desc: "개인별 상세 카드·연금·월세 공제 시뮬레이션", href: "/year-end-tax/" },
-      { title: "연봉 실수령액 계산기", desc: "부부 각자의 월 실수령액과 4대보험 확인", href: "/salary/" },
-      { title: "증여세 계산기", desc: "배우자 10년 6억 원 증여 공제 시뮬레이션", href: "/gift-tax/" }
-    ]);
-
-    writePage(
-      "/couple-tax/",
-      renderLayout({
-        routePath: "/couple-tax/",
-        title: `${DATA.year} 맞벌이 부부 연말정산 절세 계산기 (최적 몰아주기 자동 탐색)`,
-        description: "부부 각자의 연봉과 자녀·부모님 부양가족, 의료비·교육비·카드 지출을 입력하면 부부 합산 세금이 가장 적은 최적 배분 조합을 자동 계산합니다.",
-        activeNav: "couple-tax",
-        priority: "0.95",
-        breadcrumbs: [{ label: "홈", href: "/" }, { label: "맞벌이 절세 계산기", href: "/couple-tax/" }],
-        faqs,
-        bodyHtml: `
-          <header class="page-head">
-            <div class="page-head-row">
-              <h1>${DATA.year} 맞벌이 부부 연말정산 절세 계산기</h1>
-              <span class="meta-tag">최적 조합 자동 탐색</span>
-            </div>
-            <p class="subtitle">부양가족과 의료비·교육비·카드를 누구에게 몰아줘야 부부 합산 세금이 가장 적은지 세법상 귀속 요건을 지켜 자동 비교합니다.</p>
-          </header>
+    function renderWidget(defH, defW) {
+      const res = Calc.calcCoupleTax({
+        husbandGross: defH * 10000,
+        wifeGross: defW * 10000,
+        children: 1,
+        otherDeps: 1,
+        sharedMedical: 300 * 10000,
+        sharedEducation: 200 * 10000,
+        sharedCard: 1500 * 10000
+      });
+      const b = res.best;
+      return `
           <section class="calc-grid">
             <div class="sheet">
               <h2 class="sheet-title">부부 연봉 및 공유 공제 입력</h2>
               <div class="field-row">
                 <div class="field">
                   <label for="cp-husband">남편 총급여</label>
-                  <div class="input-wrap"><input id="cp-husband" type="number" min="0" step="100" value="7000" /><span class="input-unit">만 원</span></div>
+                  <div class="input-wrap"><input id="cp-husband" type="number" min="0" step="100" value="${defH}" /><span class="input-unit">만 원</span></div>
                 </div>
                 <div class="field">
                   <label for="cp-wife">아내 총급여</label>
-                  <div class="input-wrap"><input id="cp-wife" type="number" min="0" step="100" value="4500" /><span class="input-unit">만 원</span></div>
+                  <div class="input-wrap"><input id="cp-wife" type="number" min="0" step="100" value="${defW}" /><span class="input-unit">만 원</span></div>
                 </div>
               </div>
               <div class="field-row">
@@ -287,15 +329,123 @@ module.exports = function buildExtendedPages(ctx) {
               ${renderResultActions("cp")}
             </div>
           </section>
+      `;
+    }
+
+    const matrixLinks = (current) => `
+      <section class="section-block">
+        <h2>맞벌이 부부 연봉 조합별 절세 시뮬레이션</h2>
+        <div class="link-matrix">
+          ${couplePresets.map((c) => `<a class="matrix-pill ${current === c.slug ? "current" : ""}" href="/couple-tax/${c.slug}/">${formatKoreanManwonLabel(c.h)} · ${formatKoreanManwonLabel(c.w)}</a>`).join("")}
+        </div>
+      </section>
+    `;
+
+    const faqs = [
+      {
+        q: "맞벌이 부부는 무조건 연봉 높은 쪽에 부양가족을 몰아주는 게 유리한가요?",
+        a: "부부 연봉 차이가 크면 고소득자에게 몰아주는 것이 유리하지만, 연봉이 비슷하거나 공제 항목이 많으면 두 사람의 과세표준 누진구간(15%·24%·35%)을 함께 낮추도록 나누어 배정하는 편이 합산 세금이 더 적게 나오는 경우가 많습니다."
+      },
+      {
+        q: "의료비는 부양가족 공제를 받지 않은 배우자가 공제받아도 되나요?",
+        a: "배우자 본인의 의료비는 소득 요건과 무관하게 지출한 배우자가 공제받을 수 있습니다. 다만 자녀·부모님 등 부양가족의 의료비·교육비·보험료는 해당 가족의 기본공제를 받는 배우자만 공제 가능합니다."
+      },
+      {
+        q: "자녀 교육비와 보험료도 따로 나눠서 공제받을 수 있나요?",
+        a: "아니요. 자녀의 교육비·보장성 보험료·기부금은 해당 자녀의 기본공제(150만 원)를 받는 배우자만 공제할 수 있습니다."
+      }
+    ];
+
+    const related = renderRelatedCalcs([
+      { title: "연말정산 환급액 계산기", desc: "개인별 상세 카드·연금·월세 공제 시뮬레이션", href: "/year-end-tax/" },
+      { title: "연봉 실수령액 계산기", desc: "부부 각자의 월 실수령액과 4대보험 확인", href: "/salary/" },
+      { title: "증여세 계산기", desc: "배우자 10년 6억 원 증여 공제 시뮬레이션", href: "/gift-tax/" }
+    ]);
+
+    writePage(
+      "/couple-tax/",
+      renderLayout({
+        routePath: "/couple-tax/",
+        title: `${DATA.year} 맞벌이 부부 연말정산 절세 계산기 (최적 몰아주기 자동 탐색)`,
+        description: "부부 각자의 연봉과 자녀·부모님 부양가족, 의료비·교육비·카드 지출을 입력하면 부부 합산 세금이 가장 적은 최적 배분 조합을 자동 계산합니다.",
+        activeNav: "couple-tax",
+        priority: "0.95",
+        breadcrumbs: [{ label: "홈", href: "/" }, { label: "맞벌이 절세 계산기", href: "/couple-tax/" }],
+        faqs,
+        bodyHtml: `
+          <header class="page-head">
+            <div class="page-head-row">
+              <h1>${DATA.year} 맞벌이 부부 연말정산 절세 계산기</h1>
+              <span class="meta-tag">최적 조합 자동 탐색</span>
+            </div>
+            <p class="subtitle">부양가족과 의료비·교육비·카드를 누구에게 몰아줘야 부부 합산 세금이 가장 적은지 세법상 귀속 요건을 지켜 자동 비교합니다.</p>
+          </header>
+          ${renderWidget(7000, 4500)}
           ${renderAdSlot("calcMid")}
           ${renderTaxTipsSection("coupleTax")}
           ${renderAffiliateCard("coupleTax")}
           ${renderOfficialLinks("coupleTax")}
           ${related}
+          ${matrixLinks(null)}
           ${renderFaqSection(faqs)}
         `
       })
     );
+
+    couplePresets.forEach((c, idx) => {
+      const hLab = formatKoreanManwonLabel(c.h);
+      const wLab = formatKoreanManwonLabel(c.w);
+      const res = Calc.calcCoupleTax({ husbandGross: c.h * 10000, wifeGross: c.w * 10000, children: 1, otherDeps: 1, sharedMedical: 3000000, sharedEducation: 2000000, sharedCard: 15000000 });
+      const b = res.best;
+      const prev = idx > 0 ? { href: `/couple-tax/${couplePresets[idx - 1].slug}/`, label: `${formatKoreanManwonLabel(couplePresets[idx - 1].h)}·${formatKoreanManwonLabel(couplePresets[idx - 1].w)}` } : null;
+      const next = idx < couplePresets.length - 1 ? { href: `/couple-tax/${couplePresets[idx + 1].slug}/`, label: `${formatKoreanManwonLabel(couplePresets[idx + 1].h)}·${formatKoreanManwonLabel(couplePresets[idx + 1].w)}` } : null;
+      const cmp = renderCompareTable({
+        title: `맞벌이 ${hLab} · ${wLab} 배분 전략별 합산 결정세액`,
+        subtitle: "자녀 1명·기타 부양가족 1명·의료비 300만·교육비 200만·생활비 카드 1,500만 원 기준입니다.",
+        headers: [
+          { label: "공제 배분 방식" },
+          { label: "남편 결정세액", num: true },
+          { label: "아내 결정세액", num: true },
+          { label: "부부 합산 세액", num: true }
+        ],
+        rows: [
+          { current: true, cells: ["추천 최적 조합", Calc.formatWon(b.husbandTax), Calc.formatWon(b.wifeTax), Calc.formatWon(b.totalTax)] },
+          { current: false, cells: ["남편에게 전부 몰아주기", Calc.formatWon(res.allHusband.husbandTax), Calc.formatWon(res.allHusband.wifeTax), Calc.formatWon(res.allHusband.totalTax)] },
+          { current: false, cells: ["아내에게 전부 몰아주기", Calc.formatWon(res.allWife.husbandTax), Calc.formatWon(res.allWife.wifeTax), Calc.formatWon(res.allWife.totalTax)] }
+        ]
+      });
+      writePage(
+        `/couple-tax/${c.slug}/`,
+        renderLayout({
+          routePath: `/couple-tax/${c.slug}/`,
+          title: `맞벌이 연봉 ${hLab} · ${wLab} 연말정산 최적 절세 (최대 ${Calc.formatWon(res.maxSavings)} 절세)`,
+          description: `남편 ${hLab}·아내 ${wLab} 맞벌이 부부의 부양가족·의료비·교육비·카드 최적 배분 시 합산 결정세액은 ${Calc.formatWon(b.totalTax)}입니다.`,
+          activeNav: "couple-tax",
+          priority: "0.8",
+          breadcrumbs: [
+            { label: "홈", href: "/" },
+            { label: "맞벌이 절세", href: "/couple-tax/" },
+            { label: `${hLab} · ${wLab}`, href: `/couple-tax/${c.slug}/` }
+          ],
+          faqs,
+          bodyHtml: `
+            <header class="page-head">
+              <h1>맞벌이 ${hLab} · ${wLab} 연말정산 절세</h1>
+              <p class="subtitle">최적 공제 배분 시 부부 합산 세액은 <strong>${Calc.formatWon(b.totalTax)}</strong>이며, 최악 조합 대비 연 <strong>${Calc.formatWon(res.maxSavings)}</strong>을 절세합니다.</p>
+            </header>
+            ${renderWidget(c.h, c.w)}
+            ${renderAdSlot("pseoMid")}
+            ${cmp}
+            ${renderTaxTipsSection("coupleTax")}
+            ${renderAffiliateCard("coupleTax")}
+            ${renderOfficialLinks("coupleTax")}
+            ${related}
+            ${renderPrevNext(prev, next)}
+            ${matrixLinks(c.slug)}
+          `
+        })
+      );
+    });
   }
 
   /* 12. 사업소득금액 · 종합소득세 계산기 */
@@ -908,7 +1058,98 @@ module.exports = function buildExtendedPages(ctx) {
 
   /* 15. 부가가치세(VAT) 계산기 */
   function buildVatPage() {
-    const res = Calc.calcVat({ mode: "simple", amount: 1000 * 10000, isInclusive: false });
+    const vatPresets = [3000, 4800, 6000, 8000, 10000, 15000];
+
+    function renderWidget(defMode, defSalesManwon) {
+      const isSimple = defMode === "simple";
+      const res = isSimple
+        ? Calc.calcVat({ mode: "simple", amount: 1000 * 10000, isInclusive: false })
+        : Calc.calcVat({ mode: defMode, sales: defSalesManwon * 10000, purchases: Math.round(defSalesManwon * 0.4) * 10000, vatValueRate: 0.3 });
+      const defPurch = Math.round(defSalesManwon * 0.4);
+      return `
+          <section class="calc-grid">
+            <div class="sheet">
+              <h2 class="sheet-title">과세 유형 및 금액 입력</h2>
+              <div class="field">
+                <label for="vat-mode">계산 모드</label>
+                <select id="vat-mode">
+                  <option value="simple" ${defMode === "simple" ? "selected" : ""}>간편 계산 (공급가액 ↔ 합계금액 10%)</option>
+                  <option value="general" ${defMode === "general" ? "selected" : ""}>일반과세자 납부세액 (매출 - 매입)</option>
+                  <option value="simplified" ${defMode === "simplified" ? "selected" : ""}>간이과세자 납부세액 (업종별 부가가치율)</option>
+                </select>
+              </div>
+              <div id="vat-simple-box" ${isSimple ? "" : "hidden"}>
+                <div class="field">
+                  <label for="vat-amount">거래 금액</label>
+                  <div class="input-wrap"><input id="vat-amount" type="number" min="0" step="10" value="1000" /><span class="input-unit">만 원</span></div>
+                  <div class="preset-row" id="vat-presets">
+                    <button type="button" class="chip-btn" data-preset="100">100만</button>
+                    <button type="button" class="chip-btn" data-preset="500">500만</button>
+                    <button type="button" class="chip-btn" data-preset="1000">1,000만</button>
+                    <button type="button" class="chip-btn" data-preset="5000">5,000만</button>
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="checkbox-row"><input id="vat-inclusive" type="checkbox" /><span>입력 금액이 부가세 포함(합계금액)입니다 (역산 계산)</span></label>
+                </div>
+              </div>
+              <div id="vat-biz-box" ${isSimple ? "hidden" : ""}>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="vat-sales">매출액 (일반: 공급가액 / 간이: 포함)</label>
+                    <div class="input-wrap"><input id="vat-sales" type="number" min="0" step="100" value="${defSalesManwon}" /><span class="input-unit">만 원</span></div>
+                  </div>
+                  <div class="field">
+                    <label for="vat-purchases">매입액 (적격증빙 매입)</label>
+                    <div class="input-wrap"><input id="vat-purchases" type="number" min="0" step="100" value="${defPurch}" /><span class="input-unit">만 원</span></div>
+                  </div>
+                </div>
+                <div class="field" id="vat-vrate-field" ${defMode === "simplified" ? "" : "hidden"}>
+                  <label for="vat-value-rate">간이과세 업종별 부가가치율</label>
+                  <select id="vat-value-rate">
+                    <option value="15">소매업 · 음식점(일부) — 15%</option>
+                    <option value="20">제조 · 농림어업 · 숙박 — 20%</option>
+                    <option value="30" selected>음식점 · 건설 · 운수 · 통신 — 30%</option>
+                    <option value="40">전문서비스 · 부동산임대 — 40%</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="vat-card">카드·현금영수증 매출 (1.3% 발행공제)</label>
+                  <div class="input-wrap"><input id="vat-card" type="number" min="0" step="100" value="0" /><span class="input-unit">만 원</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="sheet receipt">
+              <h2 class="sheet-title">부가가치세 산출 내역</h2>
+              <div class="result-summary">
+                <div class="result-label" id="res-vat-label">${isSimple ? "부가가치세 (10%)" : "예상 납부 부가가치세"}</div>
+                <div class="result-main num" id="res-vat-main">${Calc.formatWon(isSimple ? res.vat : res.payableVat)}</div>
+                <div class="result-sub num" id="res-vat-sub">${isSimple ? `공급가액 ${Calc.formatWon(res.supply)} · 합계금액 ${Calc.formatWon(res.total)}` : `매출세액 ${Calc.formatWon(res.salesVat)}`}</div>
+                <p class="result-note" id="res-vat-note" hidden></p>
+              </div>
+              <table class="breakdown-table">
+                <tbody>
+                  <tr><th id="res-vat-row1-k">${isSimple ? "공급가액" : "매출세액"}</th><td id="res-vat-row1-v">${Calc.formatWon(isSimple ? res.supply : res.salesVat)}</td></tr>
+                  <tr><th id="res-vat-row2-k">${isSimple ? "부가가치세 (10%)" : "매입세액"}</th><td id="res-vat-row2-v">${isSimple ? Calc.formatWon(res.vat) : negWon(res.purchaseVat)}</td></tr>
+                  <tr><th id="res-vat-row3-k">신용카드 발행공제</th><td id="res-vat-row3-v">${isSimple ? "-" : negWon(res.cardCredit)}</td></tr>
+                  <tr class="total-row"><th id="res-vat-row4-k">${isSimple ? "합계금액 (공급대가)" : "최종 예상 납부세액"}</th><td id="res-vat-row4-v">${Calc.formatWon(isSimple ? res.total : res.payableVat)}</td></tr>
+                </tbody>
+              </table>
+              ${renderResultActions("vat")}
+            </div>
+          </section>
+      `;
+    }
+
+    const matrixLinks = (current) => `
+      <section class="section-block">
+        <h2>연 매출별 일반 · 간이과세자 부가가치세 비교</h2>
+        <div class="link-matrix">
+          ${vatPresets.map((m) => `<a class="matrix-pill ${current === m ? "current" : ""}" href="/vat/${m}-manwon/">매출 ${formatKoreanManwonLabel(m)}</a>`).join("")}
+        </div>
+      </section>
+    `;
+
     const faqs = [
       {
         q: "부가세 포함(공급대가) 금액에서 공급가액과 부가세를 어떻게 나누나요?",
@@ -939,132 +1180,95 @@ module.exports = function buildExtendedPages(ctx) {
             <h1>${DATA.year} 부가가치세(VAT) 계산기</h1>
             <p class="subtitle">공급가액·합계금액 10% 간편 계산과 일반·간이과세자 납부세액을 계산합니다.</p>
           </header>
-          <section class="calc-grid">
-            <div class="sheet">
-              <h2 class="sheet-title">과세 유형 및 금액 입력</h2>
-              <div class="field">
-                <label for="vat-mode">계산 모드</label>
-                <select id="vat-mode">
-                  <option value="simple" selected>간편 계산 (공급가액 ↔ 합계금액 10%)</option>
-                  <option value="general">일반과세자 납부세액 (매출 - 매입)</option>
-                  <option value="simplified">간이과세자 납부세액 (업종별 부가가치율)</option>
-                </select>
-              </div>
-              <div id="vat-simple-box">
-                <div class="field">
-                  <label for="vat-amount">거래 금액</label>
-                  <div class="input-wrap"><input id="vat-amount" type="number" min="0" step="10" value="1000" /><span class="input-unit">만 원</span></div>
-                  <div class="preset-row" id="vat-presets">
-                    <button type="button" class="chip-btn" data-preset="100">100만</button>
-                    <button type="button" class="chip-btn" data-preset="500">500만</button>
-                    <button type="button" class="chip-btn" data-preset="1000">1,000만</button>
-                    <button type="button" class="chip-btn" data-preset="5000">5,000만</button>
-                  </div>
-                </div>
-                <div class="field">
-                  <label class="checkbox-row"><input id="vat-inclusive" type="checkbox" /><span>입력 금액이 부가세 포함(합계금액)입니다 (역산 계산)</span></label>
-                </div>
-              </div>
-              <div id="vat-biz-box" hidden>
-                <div class="field-row">
-                  <div class="field">
-                    <label for="vat-sales">매출액 (일반: 공급가액 / 간이: 포함)</label>
-                    <div class="input-wrap"><input id="vat-sales" type="number" min="0" step="100" value="6000" /><span class="input-unit">만 원</span></div>
-                  </div>
-                  <div class="field">
-                    <label for="vat-purchases">매입액 (적격증빙 매입)</label>
-                    <div class="input-wrap"><input id="vat-purchases" type="number" min="0" step="100" value="2500" /><span class="input-unit">만 원</span></div>
-                  </div>
-                </div>
-                <div class="field" id="vat-vrate-field" hidden>
-                  <label for="vat-value-rate">간이과세 업종별 부가가치율</label>
-                  <select id="vat-value-rate">
-                    <option value="15">소매업 · 음식점(일부) — 15%</option>
-                    <option value="20">제조 · 농림어업 · 숙박 — 20%</option>
-                    <option value="30" selected>음식점 · 건설 · 운수 · 통신 — 30%</option>
-                    <option value="40">전문서비스 · 부동산임대 — 40%</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label for="vat-card">카드·현금영수증 매출 (1.3% 발행공제)</label>
-                  <div class="input-wrap"><input id="vat-card" type="number" min="0" step="100" value="0" /><span class="input-unit">만 원</span></div>
-                </div>
-              </div>
-            </div>
-            <div class="sheet receipt">
-              <h2 class="sheet-title">부가가치세 산출 내역</h2>
-              <div class="result-summary">
-                <div class="result-label" id="res-vat-label">부가가치세 (10%)</div>
-                <div class="result-main num" id="res-vat-main">${Calc.formatWon(res.vat)}</div>
-                <div class="result-sub num" id="res-vat-sub">공급가액 ${Calc.formatWon(res.supply)} · 합계금액 ${Calc.formatWon(res.total)}</div>
-                <p class="result-note" id="res-vat-note" hidden></p>
-              </div>
-              <table class="breakdown-table">
-                <tbody>
-                  <tr><th id="res-vat-row1-k">공급가액</th><td id="res-vat-row1-v">${Calc.formatWon(res.supply)}</td></tr>
-                  <tr><th id="res-vat-row2-k">부가가치세 (10%)</th><td id="res-vat-row2-v">${Calc.formatWon(res.vat)}</td></tr>
-                  <tr><th id="res-vat-row3-k">신용카드 발행공제</th><td id="res-vat-row3-v">-</td></tr>
-                  <tr class="total-row"><th id="res-vat-row4-k">합계금액 (공급대가)</th><td id="res-vat-row4-v">${Calc.formatWon(res.total)}</td></tr>
-                </tbody>
-              </table>
-              ${renderResultActions("vat")}
-            </div>
-          </section>
+          ${renderWidget("simple", 6000)}
           ${renderAdSlot("calcMid")}
           ${renderTaxTipsSection("vat")}
           ${renderAffiliateCard("vat")}
           ${renderOfficialLinks("vat")}
           ${related}
+          ${matrixLinks(null)}
           ${renderFaqSection(faqs)}
         `
       })
     );
+
+    vatPresets.forEach((m, idx) => {
+      const label = formatKoreanManwonLabel(m);
+      const purch = Math.round(m * 0.4) * 10000;
+      const rGen = Calc.calcVat({ mode: "general", sales: m * 10000, purchases: purch });
+      const rSim15 = Calc.calcVat({ mode: "simplified", sales: m * 10000, purchases: purch, vatValueRate: 0.15 });
+      const rSim30 = Calc.calcVat({ mode: "simplified", sales: m * 10000, purchases: purch, vatValueRate: 0.3 });
+      const rSim40 = Calc.calcVat({ mode: "simplified", sales: m * 10000, purchases: purch, vatValueRate: 0.4 });
+      const prev = idx > 0 ? { href: `/vat/${vatPresets[idx - 1]}-manwon/`, label: `매출 ${formatKoreanManwonLabel(vatPresets[idx - 1])}` } : null;
+      const next = idx < vatPresets.length - 1 ? { href: `/vat/${vatPresets[idx + 1]}-manwon/`, label: `매출 ${formatKoreanManwonLabel(vatPresets[idx + 1])}` } : null;
+      const cmp = renderCompareTable({
+        title: `연 매출 ${label} 일반과세자 vs 간이과세자 부가세 비교`,
+        subtitle: "매입 비율 40%(적격증빙 수취) 가정 기준입니다. 간이과세자는 연 4,800만 원 미만 납부 면제, 1억 400만 원 이상은 다음 해 7월 일반 전환됩니다.",
+        headers: [
+          { label: "과세 유형 / 업종" },
+          { label: "매출세액", num: true },
+          { label: "매입 공제", num: true },
+          { label: "예상 납부 부가세", num: true }
+        ],
+        rows: [
+          { current: m >= 10400, cells: ["일반과세자 (10%)", Calc.formatWon(rGen.salesVat), negWon(rGen.purchaseVat), Calc.formatWon(rGen.payableVat)] },
+          { current: false, cells: ["간이과세 · 소매업 (15%)", Calc.formatWon(rSim15.salesVat), negWon(rSim15.purchaseVat), Calc.formatWon(rSim15.payableVat)] },
+          { current: m < 10400, cells: ["간이과세 · 음식점/운수 (30%)", Calc.formatWon(rSim30.salesVat), negWon(rSim30.purchaseVat), Calc.formatWon(rSim30.payableVat)] },
+          { current: false, cells: ["간이과세 · 서비스/임대 (40%)", Calc.formatWon(rSim40.salesVat), negWon(rSim40.purchaseVat), Calc.formatWon(rSim40.payableVat)] }
+        ]
+      });
+      writePage(
+        `/vat/${m}-manwon/`,
+        renderLayout({
+          routePath: `/vat/${m}-manwon/`,
+          title: `연 매출 ${label} 부가가치세 계산 (일반 ${Calc.formatWon(rGen.payableVat)} · 간이 ${Calc.formatWon(rSim30.payableVat)})`,
+          description: `연 매출 ${label} 개인사업자(매입 40% 기준)의 일반과세자(${Calc.formatWon(rGen.payableVat)})와 간이과세자(${Calc.formatWon(rSim30.payableVat)}) 부가가치세를 비교합니다.`,
+          activeNav: "vat",
+          priority: "0.75",
+          breadcrumbs: [
+            { label: "홈", href: "/" },
+            { label: "부가가치세", href: "/vat/" },
+            { label: `매출 ${label}`, href: `/vat/${m}-manwon/` }
+          ],
+          faqs,
+          bodyHtml: `
+            <header class="page-head">
+              <h1>연 매출 ${label} 부가가치세 (일반 vs 간이)</h1>
+              <p class="subtitle">매입 비율 40% 가정 시 일반과세자 예상 부가세는 <strong>${Calc.formatWon(rGen.payableVat)}</strong>, 간이과세자(음식점 30%)는 <strong>${Calc.formatWon(rSim30.payableVat)}</strong>입니다.</p>
+            </header>
+            ${renderWidget(m < 10400 ? "simplified" : "general", m)}
+            ${renderAdSlot("pseoMid")}
+            ${cmp}
+            ${renderTaxTipsSection("vat")}
+            ${renderAffiliateCard("vat")}
+            ${renderOfficialLinks("vat")}
+            ${related}
+            ${renderPrevNext(prev, next)}
+            ${matrixLinks(m)}
+          `
+        })
+      );
+    });
   }
 
   /* 16. 금융소득종합과세 계산기 */
   function buildFinancialTaxPage() {
-    const res = Calc.calcFinancialTax({ interest: 1000 * 10000, dividend: 2000 * 10000, otherIncome: 5000 * 10000 });
-    const faqs = [
-      {
-        q: "금융소득종합과세 기준 2,000만 원은 세전인가요, 세후인가요?",
-        a: "원천징수(15.4%)를 떼기 전 '세전' 연간 이자소득과 배당소득의 합계 기준입니다. 비과세 계좌(ISA 비과세 한도, 비과세 종합저축 등)와 연금계좌 수익은 제외됩니다."
-      },
-      {
-        q: "연 2,000만 원을 넘으면 전체 금액에 높은 세율이 붙나요?",
-        a: "아닙니다. 2,000만 원까지는 15.4% 분리과세를 유지하고, 2,000만 원을 초과한 금액만 다른 종합소득(근로·사업소득 등)과 합산해 누진세율(6~45%)을 적용합니다."
-      }
-    ];
-    const related = renderRelatedCalcs([
-      { title: "해외주식 양도세", desc: "해외주식 매매차익(연 250만 공제·분리과세 22%)", href: "/stock-tax/" },
-      { title: "증여세 계산기", desc: "배우자 6억 증여로 금융소득 분산 설계", href: "/gift-tax/" }
-    ]);
+    const finPresets = [2500, 3000, 4000, 5000, 10000];
 
-    writePage(
-      "/financial-tax/",
-      renderLayout({
-        routePath: "/financial-tax/",
-        title: `${DATA.year} 금융소득종합과세 계산기 (이자·배당 2,000만 원 초과 추가세액)`,
-        description: "연간 이자·배당소득이 2,000만 원을 넘을 때 분리과세(15.4%) 외에 5월 종합소득세로 추가 납부할 세액과 건강보험 피부양자 탈락 여부를 계산합니다.",
-        activeNav: "financial-tax",
-        priority: "0.9",
-        breadcrumbs: [{ label: "홈", href: "/" }, { label: "금융소득종합과세", href: "/financial-tax/" }],
-        faqs,
-        bodyHtml: `
-          <header class="page-head">
-            <h1>${DATA.year} 금융소득종합과세 계산기</h1>
-            <p class="subtitle">연간 이자·배당 합계 2,000만 원 초과 시 5월 추가 납부세액과 건보료 유의사항을 계산합니다.</p>
-          </header>
+    function renderWidget(defInt, defDiv) {
+      const res = Calc.calcFinancialTax({ interest: defInt * 10000, dividend: defDiv * 10000, otherIncome: 5000 * 10000, domesticDividend: true });
+      return `
           <section class="calc-grid">
             <div class="sheet">
               <h2 class="sheet-title">이자 · 배당 · 타 소득 입력</h2>
               <div class="field-row">
                 <div class="field">
                   <label for="fin-interest">연간 이자소득 (세전)</label>
-                  <div class="input-wrap"><input id="fin-interest" type="number" min="0" step="100" value="1000" /><span class="input-unit">만 원</span></div>
+                  <div class="input-wrap"><input id="fin-interest" type="number" min="0" step="100" value="${defInt}" /><span class="input-unit">만 원</span></div>
                 </div>
                 <div class="field">
                   <label for="fin-dividend">연간 배당소득 (세전)</label>
-                  <div class="input-wrap"><input id="fin-dividend" type="number" min="0" step="100" value="2000" /><span class="input-unit">만 원</span></div>
+                  <div class="input-wrap"><input id="fin-dividend" type="number" min="0" step="100" value="${defDiv}" /><span class="input-unit">만 원</span></div>
                 </div>
               </div>
               <div class="preset-row" id="fin-presets" style="margin-bottom:14px;">
@@ -1104,15 +1308,116 @@ module.exports = function buildExtendedPages(ctx) {
               ${renderResultActions("fin")}
             </div>
           </section>
+      `;
+    }
+
+    const matrixLinks = (current) => `
+      <section class="section-block">
+        <h2>이자 · 배당 규모별 금융소득종합과세 비교</h2>
+        <div class="link-matrix">
+          ${finPresets.map((m) => `<a class="matrix-pill ${current === m ? "current" : ""}" href="/financial-tax/${m}-manwon/">금융소득 ${formatKoreanManwonLabel(m)}</a>`).join("")}
+        </div>
+      </section>
+    `;
+
+    const faqs = [
+      {
+        q: "금융소득종합과세 기준 2,000만 원은 세전인가요, 세후인가요?",
+        a: "원천징수(15.4%)를 떼기 전 '세전' 연간 이자소득과 배당소득의 합계 기준입니다. 비과세 계좌(ISA 비과세 한도, 비과세 종합저축 등)와 연금계좌 수익은 제외됩니다."
+      },
+      {
+        q: "연 2,000만 원을 넘으면 전체 금액에 높은 세율이 붙나요?",
+        a: "아닙니다. 2,000만 원까지는 15.4% 분리과세를 유지하고, 2,000만 원을 초과한 금액만 다른 종합소득(근로·사업소득 등)과 합산해 누진세율(6~45%)을 적용합니다."
+      }
+    ];
+    const related = renderRelatedCalcs([
+      { title: "해외주식 양도세", desc: "해외주식 매매차익(연 250만 공제·분리과세 22%)", href: "/stock-tax/" },
+      { title: "증여세 계산기", desc: "배우자 6억 증여로 금융소득 분산 설계", href: "/gift-tax/" }
+    ]);
+
+    writePage(
+      "/financial-tax/",
+      renderLayout({
+        routePath: "/financial-tax/",
+        title: `${DATA.year} 금융소득종합과세 계산기 (이자·배당 2,000만 원 초과 추가세액)`,
+        description: "연간 이자·배당소득이 2,000만 원을 넘을 때 분리과세(15.4%) 외에 5월 종합소득세로 추가 납부할 세액과 건강보험 피부양자 탈락 여부를 계산합니다.",
+        activeNav: "financial-tax",
+        priority: "0.9",
+        breadcrumbs: [{ label: "홈", href: "/" }, { label: "금융소득종합과세", href: "/financial-tax/" }],
+        faqs,
+        bodyHtml: `
+          <header class="page-head">
+            <h1>${DATA.year} 금융소득종합과세 계산기</h1>
+            <p class="subtitle">연간 이자·배당 합계 2,000만 원 초과 시 5월 추가 납부세액과 건보료 유의사항을 계산합니다.</p>
+          </header>
+          ${renderWidget(1000, 2000)}
           ${renderAdSlot("calcMid")}
           ${renderTaxTipsSection("financialTax")}
           ${renderAffiliateCard("financialTax")}
           ${renderOfficialLinks("financialTax")}
           ${related}
+          ${matrixLinks(null)}
           ${renderFaqSection(faqs)}
         `
       })
     );
+
+    finPresets.forEach((m, idx) => {
+      const label = formatKoreanManwonLabel(m);
+      const r50Dom = Calc.calcFinancialTax({ interest: 0, dividend: m * 10000, otherIncome: 5000 * 10000, domesticDividend: true });
+      const r50For = Calc.calcFinancialTax({ interest: 0, dividend: m * 10000, otherIncome: 5000 * 10000, domesticDividend: false });
+      const prev = idx > 0 ? { href: `/financial-tax/${finPresets[idx - 1]}-manwon/`, label: `금융소득 ${formatKoreanManwonLabel(finPresets[idx - 1])}` } : null;
+      const next = idx < finPresets.length - 1 ? { href: `/financial-tax/${finPresets[idx + 1]}-manwon/`, label: `금융소득 ${formatKoreanManwonLabel(finPresets[idx + 1])}` } : null;
+      const cmp = renderCompareTable({
+        title: `연 금융소득 ${label} 타 종합소득별 5월 추가 세액 비교`,
+        subtitle: "국내 법인 배당(10% 그로스업 적용)과 해외배당·이자(그로스업 미적용)의 5월 추가 납부세액을 비교합니다.",
+        headers: [
+          { label: "다른 종합소득 과표" },
+          { label: "기납부 (15.4%)", num: true },
+          { label: "국내배당 추가세액", num: true },
+          { label: "해외배당·이자 추가세액", num: true }
+        ],
+        rows: [0, 3000, 5000, 10000].map((oth) => {
+          const d = Calc.calcFinancialTax({ interest: 0, dividend: m * 10000, otherIncome: oth * 10000, domesticDividend: true });
+          const f = Calc.calcFinancialTax({ interest: 0, dividend: m * 10000, otherIncome: oth * 10000, domesticDividend: false });
+          return {
+            current: oth === 5000,
+            cells: [oth === 0 ? "타 소득 없음 (은퇴자)" : `타 소득 ${formatKoreanManwonLabel(oth)}`, Calc.formatWon(d.withheldTotal), Calc.formatWon(d.additionalTotal), Calc.formatWon(f.additionalTotal)]
+          };
+        })
+      });
+      writePage(
+        `/financial-tax/${m}-manwon/`,
+        renderLayout({
+          routePath: `/financial-tax/${m}-manwon/`,
+          title: `이자·배당 ${label} 금융소득종합과세 추가세액 (${Calc.formatWon(r50Dom.additionalTotal)}~${Calc.formatWon(r50For.additionalTotal)})`,
+          description: `연간 이자·배당소득 ${label}(타 소득 5,000만 기준) 5월 종합소득세 추가 납부액과 10% 배당세액공제 효과를 계산합니다.`,
+          activeNav: "financial-tax",
+          priority: "0.75",
+          breadcrumbs: [
+            { label: "홈", href: "/" },
+            { label: "금융소득종합과세", href: "/financial-tax/" },
+            { label: `금융소득 ${label}`, href: `/financial-tax/${m}-manwon/` }
+          ],
+          faqs,
+          bodyHtml: `
+            <header class="page-head">
+              <h1>연 금융소득 ${label} 종합과세 추가세액</h1>
+              <p class="subtitle">타 소득 5,000만 원 기준 기납부 15.4% 외 5월 추가 세액은 국내배당 <strong>${Calc.formatWon(r50Dom.additionalTotal)}</strong>, 해외배당·이자 <strong>${Calc.formatWon(r50For.additionalTotal)}</strong>입니다.</p>
+            </header>
+            ${renderWidget(0, m)}
+            ${renderAdSlot("pseoMid")}
+            ${cmp}
+            ${renderTaxTipsSection("financialTax")}
+            ${renderAffiliateCard("financialTax")}
+            ${renderOfficialLinks("financialTax")}
+            ${related}
+            ${renderPrevNext(prev, next)}
+            ${matrixLinks(m)}
+          `
+        })
+      );
+    });
   }
 
   /* 17. 자동차세 & 자동차 취득세 계산기 */
@@ -1302,43 +1607,17 @@ module.exports = function buildExtendedPages(ctx) {
 
   /* 18. 기타소득세(8.8%) 계산기 */
   function buildOtherIncomePage() {
-    const res = Calc.calcOtherIncomeTax({ gross: 100 * 10000, expenseRatePct: 60 });
-    const faqs = [
-      {
-        q: "강연료·원고료에서 왜 8.8%를 떼나요?",
-        a: "일시적 인적용역 기타소득은 지급액의 60%를 필요경비로 인정하고 나머지 40%에 22%(소득세 20% + 지방소득세 2%)를 매기므로 전체 지급액의 8.8%가 원천징수됩니다."
-      },
-      {
-        q: "기타소득이 얼마 이하이면 세금을 안 내나요?",
-        a: "건별 기타소득금액(필요경비 차감 후)이 5만 원 이하이면 과세최저한으로 세금이 0원입니다. 필요경비 60% 기준 지급액 12만 5,000원 이하가 비과세입니다."
-      }
-    ];
-    const related = renderRelatedCalcs([
-      { title: "프리랜서 3.3% 계산기", desc: "계속·반복적 사업소득(3.3%)과 실수령 비교", href: "/freelancer/" },
-      { title: "종합소득세 계산기", desc: "연 300만 원 초과 시 5월 합산 세액 확인", href: "/business-tax/" }
-    ]);
+    const othPresets = [50, 100, 300, 500];
 
-    writePage(
-      "/other-income/",
-      renderLayout({
-        routePath: "/other-income/",
-        title: `${DATA.year} 기타소득세(8.8%) 계산기 (강연료 · 원고료 · 상금 실수령액)`,
-        description: "일시적 강연료·원고료·자문료(8.8%), 공익상(4.4%), 경품·상금(22%)의 원천징수 세액과 실수령액, 300만 원 분리과세 여부를 계산합니다.",
-        activeNav: "other-income",
-        priority: "0.85",
-        breadcrumbs: [{ label: "홈", href: "/" }, { label: "기타소득세 8.8%", href: "/other-income/" }],
-        faqs,
-        bodyHtml: `
-          <header class="page-head">
-            <h1>${DATA.year} 기타소득세(8.8%) 계산기</h1>
-            <p class="subtitle">강연료·원고료·심사료·상금의 필요경비 공제 후 원천징수 세액과 실수령액을 계산합니다.</p>
-          </header>
+    function renderWidget(defGrossManwon) {
+      const res = Calc.calcOtherIncomeTax({ gross: defGrossManwon * 10000, expenseRatePct: 60 });
+      return `
           <section class="calc-grid">
             <div class="sheet">
               <h2 class="sheet-title">지급액 및 소득 유형</h2>
               <div class="field">
                 <label for="oth-gross">지급 금액 (세전)</label>
-                <div class="input-wrap"><input id="oth-gross" type="number" min="0" step="10" value="100" /><span class="input-unit">만 원</span></div>
+                <div class="input-wrap"><input id="oth-gross" type="number" min="0" step="10" value="${defGrossManwon}" /><span class="input-unit">만 원</span></div>
                 <div class="preset-row" id="oth-presets">
                   <button type="button" class="chip-btn" data-preset="30">30만</button>
                   <button type="button" class="chip-btn" data-preset="100">100만</button>
@@ -1376,15 +1655,114 @@ module.exports = function buildExtendedPages(ctx) {
               ${renderResultActions("oth")}
             </div>
           </section>
+      `;
+    }
+
+    const matrixLinks = (current) => `
+      <section class="section-block">
+        <h2>지급 금액별 기타소득세 (8.8% · 4.4% · 22%) 비교</h2>
+        <div class="link-matrix">
+          ${othPresets.map((m) => `<a class="matrix-pill ${current === m ? "current" : ""}" href="/other-income/${m}-manwon/">지급액 ${formatKoreanManwonLabel(m)}</a>`).join("")}
+        </div>
+      </section>
+    `;
+
+    const faqs = [
+      {
+        q: "강연료·원고료에서 왜 8.8%를 떼나요?",
+        a: "일시적 인적용역 기타소득은 지급액의 60%를 필요경비로 인정하고 나머지 40%에 22%(소득세 20% + 지방소득세 2%)를 매기므로 전체 지급액의 8.8%가 원천징수됩니다."
+      },
+      {
+        q: "기타소득이 얼마 이하이면 세금을 안 내나요?",
+        a: "건별 기타소득금액(필요경비 차감 후)이 5만 원 이하이면 과세최저한으로 세금이 0원입니다. 필요경비 60% 기준 지급액 12만 5,000원 이하가 비과세입니다."
+      }
+    ];
+    const related = renderRelatedCalcs([
+      { title: "프리랜서 3.3% 계산기", desc: "계속·반복적 사업소득(3.3%)과 실수령 비교", href: "/freelancer/" },
+      { title: "종합소득세 계산기", desc: "연 300만 원 초과 시 5월 합산 세액 확인", href: "/business-tax/" }
+    ]);
+
+    writePage(
+      "/other-income/",
+      renderLayout({
+        routePath: "/other-income/",
+        title: `${DATA.year} 기타소득세(8.8%) 계산기 (강연료 · 원고료 · 상금 실수령액)`,
+        description: "일시적 강연료·원고료·자문료(8.8%), 공익상(4.4%), 경품·상금(22%)의 원천징수 세액과 실수령액, 300만 원 분리과세 여부를 계산합니다.",
+        activeNav: "other-income",
+        priority: "0.85",
+        breadcrumbs: [{ label: "홈", href: "/" }, { label: "기타소득세 8.8%", href: "/other-income/" }],
+        faqs,
+        bodyHtml: `
+          <header class="page-head">
+            <h1>${DATA.year} 기타소득세(8.8%) 계산기</h1>
+            <p class="subtitle">강연료·원고료·심사료·상금의 필요경비 공제 후 원천징수 세액과 실수령액을 계산합니다.</p>
+          </header>
+          ${renderWidget(100)}
           ${renderAdSlot("calcMid")}
           ${renderTaxTipsSection("otherIncome")}
           ${renderAffiliateCard("otherIncome")}
           ${renderOfficialLinks("otherIncome")}
           ${related}
+          ${matrixLinks(null)}
           ${renderFaqSection(faqs)}
         `
       })
     );
+
+    othPresets.forEach((m, idx) => {
+      const label = formatKoreanManwonLabel(m);
+      const r60 = Calc.calcOtherIncomeTax({ gross: m * 10000, expenseRatePct: 60 });
+      const r80 = Calc.calcOtherIncomeTax({ gross: m * 10000, expenseRatePct: 80 });
+      const r0 = Calc.calcOtherIncomeTax({ gross: m * 10000, expenseRatePct: 0 });
+      const prev = idx > 0 ? { href: `/other-income/${othPresets[idx - 1]}-manwon/`, label: `지급액 ${formatKoreanManwonLabel(othPresets[idx - 1])}` } : null;
+      const next = idx < othPresets.length - 1 ? { href: `/other-income/${othPresets[idx + 1]}-manwon/`, label: `지급액 ${formatKoreanManwonLabel(othPresets[idx + 1])}` } : null;
+      const cmp = renderCompareTable({
+        title: `기타소득 ${label} 유형별 원천징수 · 실수령액 비교`,
+        subtitle: "소득 유형에 따른 필요경비율(60% · 80% · 0%) 차이로 실효세율이 8.8% · 4.4% · 22%로 달라집니다.",
+        headers: [
+          { label: "소득 유형" },
+          { label: "기타소득금액", num: true },
+          { label: "원천징수 세액", num: true },
+          { label: "실수령액", num: true }
+        ],
+        rows: [
+          { current: true, cells: ["강연료·원고료·자문료 (경비 60% → 8.8%)", Calc.formatWon(r60.otherIncome), Calc.formatWon(r60.totalTax), Calc.formatWon(r60.net)] },
+          { current: false, cells: ["공익·학술상·경쟁 상금 (경비 80% → 4.4%)", Calc.formatWon(r80.otherIncome), Calc.formatWon(r80.totalTax), Calc.formatWon(r80.net)] },
+          { current: false, cells: ["경품·이벤트·위약금 (경비 0% → 22%)", Calc.formatWon(r0.otherIncome), Calc.formatWon(r0.totalTax), Calc.formatWon(r0.net)] }
+        ]
+      });
+      writePage(
+        `/other-income/${m}-manwon/`,
+        renderLayout({
+          routePath: `/other-income/${m}-manwon/`,
+          title: `기타소득 ${label} 세금(8.8%) · 실수령액 (${Calc.formatWon(r60.net)})`,
+          description: `강연료·원고료 ${label} 지급 시 8.8% 원천징수 세액은 ${Calc.formatWon(r60.totalTax)}, 실수령액은 ${Calc.formatWon(r60.net)}입니다.`,
+          activeNav: "other-income",
+          priority: "0.7",
+          breadcrumbs: [
+            { label: "홈", href: "/" },
+            { label: "기타소득세 8.8%", href: "/other-income/" },
+            { label: `지급액 ${label}`, href: `/other-income/${m}-manwon/` }
+          ],
+          faqs,
+          bodyHtml: `
+            <header class="page-head">
+              <h1>기타소득 ${label} 세금 · 실수령액</h1>
+              <p class="subtitle">강연료·원고료(8.8%) 기준 세금은 <strong>${Calc.formatWon(r60.totalTax)}</strong>, 실수령액은 <strong>${Calc.formatWon(r60.net)}</strong>입니다.</p>
+            </header>
+            ${renderWidget(m)}
+            ${renderAdSlot("pseoMid")}
+            ${cmp}
+            ${renderTaxTipsSection("otherIncome")}
+            ${renderAffiliateCard("otherIncome")}
+            ${renderOfficialLinks("otherIncome")}
+            ${related}
+            ${renderPrevNext(prev, next)}
+            ${matrixLinks(m)}
+          `
+        })
+      );
+    });
   }
 
   /* 19. 보유세(재산세 · 종합부동산세) 계산기 */
@@ -1557,54 +1935,35 @@ module.exports = function buildExtendedPages(ctx) {
 
   /* 20. 근로장려금 · 자녀장려금 계산기 */
   function buildEitcPage() {
-    const res = Calc.calcEitc({ household: "single", income: 1200 * 10000, children: 0, assets: 1 * 100000000 });
-    const faqs = [
-      {
-        q: "2026년 근로장려금 소득 기준과 최대 지급액은 얼마인가요?",
-        a: "단독가구 연 2,200만 원 미만(최대 165만 원), 홑벌이가구 3,200만 원 미만(최대 285만 원), 맞벌이가구 4,400만 원 미만(최대 330만 원)이며, 가구 재산 합계가 2억 4,000만 원 미만이어야 합니다."
-      },
-      {
-        q: "자녀장려금은 근로장려금과 중복해서 받을 수 있나요?",
-        a: "네, 18세 미만 부양자녀가 있고 부부합산 소득이 7,000만 원 미만·재산 2억 4,000만 원 미만이면 근로장려금과 별도로 자녀 1인당 50만~100만 원을 함께 받을 수 있습니다."
-      }
+    const eitcPresets = [
+      { slug: "single-800", hh: "single", label: "단독가구 연 800만 원", inc: 800, children: 0 },
+      { slug: "single-1500", hh: "single", label: "단독가구 연 1,500만 원", inc: 1500, children: 0 },
+      { slug: "single-2000", hh: "single", label: "단독가구 연 2,000만 원", inc: 2000, children: 0 },
+      { slug: "single-earner-1200", hh: "singleEarner", label: "홑벌이가구 연 1,200만 원", inc: 1200, children: 1 },
+      { slug: "single-earner-2000", hh: "singleEarner", label: "홑벌이가구 연 2,000만 원", inc: 2000, children: 1 },
+      { slug: "single-earner-2800", hh: "singleEarner", label: "홑벌이가구 연 2,800만 원", inc: 2800, children: 2 },
+      { slug: "dual-1500", hh: "dualEarner", label: "맞벌이가구 연 1,500만 원", inc: 1500, children: 1 },
+      { slug: "dual-2500", hh: "dualEarner", label: "맞벌이가구 연 2,500만 원", inc: 2500, children: 1 },
+      { slug: "dual-3800", hh: "dualEarner", label: "맞벌이가구 연 3,800만 원", inc: 3800, children: 2 }
     ];
-    const related = renderRelatedCalcs([
-      { title: "주휴수당 계산기", desc: "2026·2027 최저시급 기준 월급 환산", href: "/weekly-holiday/" },
-      { title: "연말정산 계산기", desc: "근로소득세 예상 환급액 계산", href: "/year-end-tax/" }
-    ]);
 
-    writePage(
-      "/eitc/",
-      renderLayout({
-        routePath: "/eitc/",
-        title: `${DATA.year} 근로장려금 · 자녀장려금 계산기 (맞벌이 4,400만 원 기준)`,
-        description: "가구 유형(단독·홑벌이·맞벌이), 연간 총소득, 자녀 수, 재산 합계로 2026년 근로장려금과 자녀장려금 자격 및 예상 수령액을 계산합니다.",
-        activeNav: "eitc",
-        priority: "0.9",
-        breadcrumbs: [{ label: "홈", href: "/" }, { label: "근로·자녀장려금", href: "/eitc/" }],
-        faqs,
-        bodyHtml: `
-          <header class="page-head">
-            <div class="page-head-row">
-              <h1>${DATA.year} 근로장려금 · 자녀장려금 계산기</h1>
-              <span class="meta-tag">맞벌이 4,400만 확대 반영</span>
-            </div>
-            <p class="subtitle">가구 유형과 연 소득·재산 기준으로 예상 근로장려금과 자녀장려금을 바로 확인합니다.</p>
-          </header>
+    function renderWidget(defHh, defInc, defChildren) {
+      const res = Calc.calcEitc({ household: defHh, income: defInc * 10000, children: defChildren, assets: 1 * 100000000 });
+      return `
           <section class="calc-grid">
             <div class="sheet">
               <h2 class="sheet-title">가구 · 소득 · 재산 입력</h2>
               <div class="field">
                 <label for="eitc-household">가구 유형</label>
                 <select id="eitc-household">
-                  <option value="single" selected>단독가구 (배우자·부양자녀 없음 · 2,200만 미만)</option>
-                  <option value="singleEarner">홑벌이가구 (외벌이·부양가족 있음 · 3,200만 미만)</option>
-                  <option value="dualEarner">맞벌이가구 (부부 각 300만 이상 · 4,400만 미만)</option>
+                  <option value="single" ${defHh === "single" ? "selected" : ""}>단독가구 (배우자·부양자녀 없음 · 2,200만 미만)</option>
+                  <option value="singleEarner" ${defHh === "singleEarner" ? "selected" : ""}>홑벌이가구 (외벌이·부양가족 있음 · 3,200만 미만)</option>
+                  <option value="dualEarner" ${defHh === "dualEarner" ? "selected" : ""}>맞벌이가구 (부부 각 300만 이상 · 4,400만 미만)</option>
                 </select>
               </div>
               <div class="field">
                 <label for="eitc-income">연간 부부합산 총소득</label>
-                <div class="input-wrap"><input id="eitc-income" type="number" min="0" step="100" value="1200" /><span class="input-unit">만 원</span></div>
+                <div class="input-wrap"><input id="eitc-income" type="number" min="0" step="100" value="${defInc}" /><span class="input-unit">만 원</span></div>
                 <div class="preset-row" id="eitc-presets">
                   <button type="button" class="chip-btn" data-preset="800">800만</button>
                   <button type="button" class="chip-btn" data-preset="1500">1,500만</button>
@@ -1613,9 +1972,9 @@ module.exports = function buildExtendedPages(ctx) {
                 </div>
               </div>
               <div class="field-row">
-                <div class="field" id="eitc-child-field" hidden>
+                <div class="field" id="eitc-child-field" ${defHh === "single" ? "hidden" : ""}>
                   <label for="eitc-children">18세 미만 부양자녀 수</label>
-                  <div class="input-wrap"><input id="eitc-children" type="number" min="0" max="10" step="1" value="0" /><span class="input-unit">명</span></div>
+                  <div class="input-wrap"><input id="eitc-children" type="number" min="0" max="10" step="1" value="${defChildren}" /><span class="input-unit">명</span></div>
                 </div>
                 <div class="field">
                   <label for="eitc-assets">가구 재산 합계 (부채 미차감)</label>
@@ -1643,15 +2002,116 @@ module.exports = function buildExtendedPages(ctx) {
               ${renderResultActions("eitc")}
             </div>
           </section>
+      `;
+    }
+
+    const matrixLinks = (current) => `
+      <section class="section-block">
+        <h2>가구 유형 · 소득별 2026 근로장려금 바로가기</h2>
+        <div class="link-matrix">
+          ${eitcPresets.map((p) => `<a class="matrix-pill ${current === p.slug ? "current" : ""}" href="/eitc/${p.slug}/">${p.label}</a>`).join("")}
+        </div>
+      </section>
+    `;
+
+    const faqs = [
+      {
+        q: "2026년 근로장려금 소득 기준과 최대 지급액은 얼마인가요?",
+        a: "단독가구 연 2,200만 원 미만(최대 165만 원), 홑벌이가구 3,200만 원 미만(최대 285만 원), 맞벌이가구 4,400만 원 미만(최대 330만 원)이며, 가구 재산 합계가 2억 4,000만 원 미만이어야 합니다."
+      },
+      {
+        q: "자녀장려금은 근로장려금과 중복해서 받을 수 있나요?",
+        a: "네, 18세 미만 부양자녀가 있고 부부합산 소득이 7,000만 원 미만·재산 2억 4,000만 원 미만이면 근로장려금과 별도로 자녀 1인당 50만~100만 원을 함께 받을 수 있습니다(단, 연말정산 자녀세액공제와 중복 불가)."
+      }
+    ];
+    const related = renderRelatedCalcs([
+      { title: "주휴수당 계산기", desc: "2026 최저시급 10,320원 기준 월급 환산", href: "/weekly-holiday/" },
+      { title: "연말정산 계산기", desc: "근로소득세 예상 환급액 계산", href: "/year-end-tax/" }
+    ]);
+
+    writePage(
+      "/eitc/",
+      renderLayout({
+        routePath: "/eitc/",
+        title: `${DATA.year} 근로장려금 · 자녀장려금 계산기 (맞벌이 4,400만 원 기준)`,
+        description: "가구 유형(단독·홑벌이·맞벌이), 연간 총소득, 자녀 수, 재산 합계로 2026년 근로장려금과 자녀장려금 자격 및 예상 수령액을 계산합니다.",
+        activeNav: "eitc",
+        priority: "0.9",
+        breadcrumbs: [{ label: "홈", href: "/" }, { label: "근로·자녀장려금", href: "/eitc/" }],
+        faqs,
+        bodyHtml: `
+          <header class="page-head">
+            <div class="page-head-row">
+              <h1>${DATA.year} 근로장려금 · 자녀장려금 계산기</h1>
+              <span class="meta-tag">맞벌이 4,400만 확대 반영</span>
+            </div>
+            <p class="subtitle">가구 유형과 연 소득·재산 기준으로 예상 근로장려금과 자녀장려금을 바로 확인합니다.</p>
+          </header>
+          ${renderWidget("single", 1200, 0)}
           ${renderAdSlot("calcMid")}
           ${renderTaxTipsSection("eitc")}
           ${renderAffiliateCard("eitc")}
           ${renderOfficialLinks("eitc")}
           ${related}
+          ${matrixLinks(null)}
           ${renderFaqSection(faqs)}
         `
       })
     );
+
+    eitcPresets.forEach((p, idx) => {
+      const r100 = Calc.calcEitc({ household: p.hh, income: p.inc * 10000, children: p.children, assets: 100000000 });
+      const r50 = Calc.calcEitc({ household: p.hh, income: p.inc * 10000, children: p.children, assets: 200000000 });
+      const r0Child = Calc.calcEitc({ household: p.hh, income: p.inc * 10000, children: 0, assets: 100000000 });
+      const prev = idx > 0 ? { href: `/eitc/${eitcPresets[idx - 1].slug}/`, label: eitcPresets[idx - 1].label } : null;
+      const next = idx < eitcPresets.length - 1 ? { href: `/eitc/${eitcPresets[idx + 1].slug}/`, label: eitcPresets[idx + 1].label } : null;
+      const cmp = renderCompareTable({
+        title: `${p.label} 재산 · 자녀 수별 예상 장려금 비교`,
+        subtitle: "가구 재산 1.7억 원 미만은 100% 지급, 1.7억~2.4억 원 미만은 50% 감액됩니다.",
+        headers: [
+          { label: "조건" },
+          { label: "근로장려금", num: true },
+          { label: "자녀장려금", num: true },
+          { label: "총 예상 수령액", num: true }
+        ],
+        rows: [
+          { current: true, cells: [`재산 1.7억 미만 (자녀 ${p.children}명)`, Calc.formatWon(r100.eitc), Calc.formatWon(r100.ctc), Calc.formatWon(r100.totalBenefit)] },
+          { current: false, cells: [`재산 1.7억~2.4억 (50% 감액, 자녀 ${p.children}명)`, Calc.formatWon(r50.eitc), Calc.formatWon(r50.ctc), Calc.formatWon(r50.totalBenefit)] },
+          ...(p.children > 0 ? [{ current: false, cells: ["재산 1.7억 미만 (자녀 0명)", Calc.formatWon(r0Child.eitc), "0원", Calc.formatWon(r0Child.totalBenefit)] }] : [])
+        ]
+      });
+      writePage(
+        `/eitc/${p.slug}/`,
+        renderLayout({
+          routePath: `/eitc/${p.slug}/`,
+          title: `${DATA.year} ${p.label} 근로장려금 · 자녀장려금 (${Calc.formatWon(r100.totalBenefit)})`,
+          description: `2026년 ${p.label}(자녀 ${p.children}명·재산 1.7억 미만) 기준 예상 근로장려금은 ${Calc.formatWon(r100.eitc)}, 총 수령액은 ${Calc.formatWon(r100.totalBenefit)}입니다.`,
+          activeNav: "eitc",
+          priority: "0.75",
+          breadcrumbs: [
+            { label: "홈", href: "/" },
+            { label: "근로·자녀장려금", href: "/eitc/" },
+            { label: p.label, href: `/eitc/${p.slug}/` }
+          ],
+          faqs,
+          bodyHtml: `
+            <header class="page-head">
+              <h1>${DATA.year} ${p.label} 근로 · 자녀장려금</h1>
+              <p class="subtitle">재산 1억 7,000만 원 미만 기준 예상 근로장려금은 <strong>${Calc.formatWon(r100.eitc)}</strong>${r100.ctc > 0 ? `, 자녀장려금 포함 총 <strong>${Calc.formatWon(r100.totalBenefit)}</strong>` : ""}입니다.</p>
+            </header>
+            ${renderWidget(p.hh, p.inc, p.children)}
+            ${renderAdSlot("pseoMid")}
+            ${cmp}
+            ${renderTaxTipsSection("eitc")}
+            ${renderAffiliateCard("eitc")}
+            ${renderOfficialLinks("eitc")}
+            ${related}
+            ${renderPrevNext(prev, next)}
+            ${matrixLinks(p.slug)}
+          `
+        })
+      );
+    });
   }
 
   buildYearEndTaxPages();

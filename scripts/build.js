@@ -382,6 +382,10 @@ function renderLayout({
     DATA.verification && DATA.verification.naverSiteVerification
       ? `<meta name="naver-site-verification" content="${escapeHtml(DATA.verification.naverSiteVerification)}" />`
       : "";
+  const bingVerify =
+    DATA.verification && DATA.verification.bingSiteVerification
+      ? `<meta name="msvalidate.01" content="${escapeHtml(DATA.verification.bingSiteVerification)}" />`
+      : "";
   const ga4Id = DATA.analytics && DATA.analytics.ga4MeasurementId;
   const ga4Head = ga4Id
     ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${escapeHtml(ga4Id)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${escapeHtml(ga4Id)}');</script>`
@@ -409,6 +413,7 @@ function renderLayout({
   <link rel="alternate" type="application/rss+xml" title="${escapeHtml(DATA.siteName)} RSS" href="/rss.xml" />
   ${googleVerify}
   ${naverVerify}
+  ${bingVerify}
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="${escapeHtml(DATA.siteName)}" />
   <meta property="og:title" content="${escapeHtml(title)} · ${escapeHtml(DATA.siteName)}" />
@@ -2983,6 +2988,56 @@ Sitemap: ${BASE_URL}/sitemap.xml
     ? `google.com, ${cleanPub}, DIRECT, f08c47fec0942fa0\n`
     : `# data/rates-2026.json의 monetization.adsensePublisherId 입력 후 빌드하면 자동 생성됩니다.\n`;
   fs.writeFileSync(path.join(DIST, "ads.txt"), adsTxt, "utf8");
+
+  // IndexNow key file (Bing / Naver / Yandex / AI search instant indexing)
+  const indexNowKey = DATA.verification && DATA.verification.indexNowKey;
+  if (indexNowKey) {
+    fs.writeFileSync(path.join(DIST, `${indexNowKey}.txt`), `${indexNowKey}\n`, "utf8");
+  }
+
+  // llms.txt (AI Search / GEO discovery guide for ChatGPT, Perplexity, Gemini, Claude)
+  const llmsTxt = `# ${DATA.siteName} (${BASE_URL})
+
+> 2026년 대한민국 현행 세법·지방세법·4대보험 고시 기준 무료 한국 세금·금융·근로 실수령 계산기 20종 및 절세 가이드 허브입니다. 모든 계산은 브라우저에서 즉시 실행되며 서버에 개인정보를 저장하지 않습니다.
+
+- 최종 법령 대조일: ${DATA.updatedAt}
+- 사이트맵: ${BASE_URL}/sitemap.xml
+- RSS 피드: ${BASE_URL}/rss.xml
+
+## 근로 · 연말정산 · 급여 계산기 (7종)
+- [2026 연봉 실수령액 계산기](${BASE_URL}/salary/): 국민연금 4.75%·건강보험 3.595%·장기요양 13.14%·고용보험 0.9%·2026 간이세액표 원표 적용
+- [2026 연말정산 환급액 계산기](${BASE_URL}/year-end-tax/): 신용·체크카드 2026 자녀 추가한도(최대 400만), 자녀세액공제(25·30·40만), 월세 공제(총급여 8,000만 이하 1,000만 한도), 특별공제 vs 표준세액공제(13만) 자동 비교
+- [2026 맞벌이 부부 연말정산 절세 계산기](${BASE_URL}/couple-tax/): 부양가족 귀속 원칙 준수, 부부 합산 세액 최소 조합 자동 탐색
+- [2026 퇴직금 · 퇴직소득세 계산기](${BASE_URL}/severance/): 1일 평균임금·근속연수공제·환산급여공제·IRP 과세이연
+- [2026 실업급여 계산기](${BASE_URL}/unemployment/): 1일 상한액 68,100원·하한액 66,048원(2026 최저임금 10,320원 기준)
+- [2026 주휴수당 · 최저임금 계산기](${BASE_URL}/weekly-holiday/): 시급 10,320원, 주 40시간 월 209시간(2,156,880원) 환산
+- [2026 근로장려금 · 자녀장려금 계산기](${BASE_URL}/eitc/): 단독 2,200만(165만)·홑벌이 3,200만(285만)·맞벌이 4,400만(330만), 자녀장려금 7,000만 미만(1인 50~100만)
+
+## 사업 · 프리랜서 · 종합소득세 계산기 (4종)
+- [2026 사업소득금액 · 종합소득세 계산기](${BASE_URL}/business-tax/): 단순경비율/실제경비, 2026 노란우산공제 한도(최대 600만), 3.3% 기납부 환급·추가납부
+- [2026 프리랜서 3.3% 원천징수 계산기](${BASE_URL}/freelancer/): 3.3% 실수령액 및 세전 역산
+- [2026 부가가치세(VAT) 계산기](${BASE_URL}/vat/): 공급가액·합계금액 10% 역산, 일반과세자·간이과세자(4,800만 미만 면제·1억 400만 전환)·신용카드 발행세액공제 1.3%
+- [2026 기타소득세(8.8%) 계산기](${BASE_URL}/other-income/): 강연료·원고료 필요경비 60%(8.8%), 공익상 80%(4.4%), 경품 0%(22%), 과세최저한 5만 원
+
+## 부동산 · 차량 세금 계산기 (5종)
+- [2026 부동산 양도소득세 계산기](${BASE_URL}/transfer-tax/): 1세대 1주택 12억 비과세 안분, 장기보유특별공제 최대 80%, 2026.5.10 다주택 중과(+20%p/+30%p) 반영
+- [2026 주택 취등록세 계산기](${BASE_URL}/real-estate/): 유상 1~3%, 조정/다주택 중과 8%·12%, 생애최초(200만/300만)·출산(500만) 감면 및 지방교육세 비례 감면
+- [2026 보유세(재산세 · 종합부동산세) 계산기](${BASE_URL}/holding-tax/): 1주택 재산세 공정시장 43~45%·9억 이하 특례세율, 종부세 12억/9억 공제·시행령 제4조의3 재산세 중복공제·고령자/장기보유 최대 80%
+- [2026 전월세 전환율 계산기](${BASE_URL}/jeonse/): 한국은행 기준금리 3.00% + 2%p = 법정 상한 연 5.0%
+- [2026 자동차세 · 차량 취득세 계산기](${BASE_URL}/car-tax/): 2026 연납 5% 공제(1월 실효 4.58%), 전기차 연 13만·취득세 140만 감면, 경차 75만 감면, 11인승 승합차 65,000원(교육세 면제), 신차 부가세 제외 공급가액 과세
+
+## 투자 · 상속 · 증여 세금 계산기 (4종)
+- [2026 상속세 계산기](${BASE_URL}/inheritance-tax/): 일괄 5억(배우자 단독상속 시 기초 2억), 배우자 5~30억, 금융재산 최대 2억, 상증세법 제24조 공제 종합한도, 신고공제 3%
+- [2026 증여세 계산기](${BASE_URL}/gift-tax/): 배우자 6억·성년자녀 5천만·혼인/출산 1억 추가공제·세대생략 30~40% 할증
+- [2026 해외주식 양도소득세 계산기](${BASE_URL}/stock-tax/): 기본공제 250만·22% 분리과세 및 2026 국내시장복귀계좌(RIA) 공제
+- [2026 금융소득종합과세 계산기](${BASE_URL}/financial-tax/): 이자·배당 2,000만 초과 비교과세, 국내 배당 10% 그로스업·배당세액공제
+
+## 절세 가이드 & 공식 참고 링크
+- [2026 세금별 절세 꿀팁 80선](${BASE_URL}/tips/): 20개 분야별 실전 절세 체크리스트
+- [국세청·정부 공식 링크 모음](${BASE_URL}/links/): 홈택스, 위택스, 4대보험, 고용24 공식 바로가기
+`;
+  fs.writeFileSync(path.join(DIST, "llms.txt"), llmsTxt, "utf8");
+
   fs.writeFileSync(path.join(DIST, ".nojekyll"), "", "utf8");
   try {
     const host = new URL(BASE_URL).hostname;

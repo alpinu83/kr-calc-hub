@@ -52,3 +52,7 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Notify IndexNow (Bing · Naver · AI Search)
+        run: node scripts/ping-indexnow.js
+        continue-on-error: true
