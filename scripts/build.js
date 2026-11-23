@@ -1788,7 +1788,10 @@ function buildHomePage() {
 }
 
 function buildTrustPages() {
-  const repoIssueUrl = DATA.repoUrl ? `${DATA.repoUrl}/issues` : "https://github.com";
+  const contactEmail = DATA.contactEmail || "";
+  const contactLink = contactEmail
+    ? `<a href="mailto:${escapeHtml(contactEmail)}">${escapeHtml(contactEmail)}</a>`
+    : "";
 
   writePage(
     "/about/",
@@ -1840,7 +1843,7 @@ function buildTrustPages() {
           <p>${escapeHtml(DATA.siteName)}의 모든 계산 결과는 일반적인 법정 요율을 적용한 <strong>참고용 추정치</strong>입니다. 비과세 항목 구성, 부양가족·자녀 세액공제, 생애최초·신혼부부 감면, 조정대상지역 여부, 과거 10년 내 합산 증여 이력 등 개인별 특수 조건에 따라 실제 신고·납부 세액과 차이가 발생할 수 있습니다. 실제 세무 신고나 계약 결정 전에는 반드시 관할 세무서, 홈택스 모의계산 또는 세무 전문가의 확인을 받으시기 바랍니다.</p>
 
           <h2>4. 오류 제보 및 문의</h2>
-          <p>계산 공식 오류 제보, 신규 계산기 제안, 세율 개정 반영 요청은 <a href="${escapeHtml(repoIssueUrl)}" target="_blank" rel="noopener noreferrer">GitHub Issues</a>를 통해 남겨주시면 확인 후 반영합니다.</p>
+          <p>계산 공식 오류 제보, 신규 계산기 제안, 세율 개정 반영 요청은 이메일(${contactLink})로 보내주시면 확인 후 반영합니다.</p>
         </article>
       `
     })
@@ -1883,7 +1886,7 @@ function buildTrustPages() {
           <p>본 사이트에는 국세청 홈택스, 위택스, 고용24 등 외부 공식 기관 또는 제휴 안내 페이지로 연결되는 링크가 포함되어 있습니다. 외부 사이트 이동 후의 개인정보 처리는 해당 사이트의 개인정보처리방침을 따릅니다.</p>
 
           <h2>4. 개인정보 보호 문의</h2>
-          <p>본 방침에 관한 문의 사항은 <a href="${escapeHtml(repoIssueUrl)}" target="_blank" rel="noopener noreferrer">GitHub 저장소 문의 페이지</a>를 통해 접수할 수 있으며, 법령 또는 서비스 변경에 따라 방침이 개정될 경우 본 페이지를 통해 공지합니다.</p>
+          <p>본 방침에 관한 문의 사항은 이메일(${contactLink})로 접수할 수 있으며, 법령 또는 서비스 변경에 따라 방침이 개정될 경우 본 페이지를 통해 공지합니다.</p>
         </article>
       `
     })
