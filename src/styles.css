@@ -965,3 +965,36 @@ a {
     padding: 22px 18px;
   }
 }
+
+/* 2026-11-23 법령 반영 업데이트: 보조 안내·상세 입력 */
+.calc-note {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #64748b;
+}
+.result-note {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.result-note[hidden] { display: none; }
+.calc-details {
+  margin: 4px 0 14px;
+  padding: 10px 12px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+}
+.calc-details summary {
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1e3a8a;
+}
+.calc-details[open] summary { margin-bottom: 12px; }
+.field[hidden] { display: none; }
+.field .checkbox-row + .checkbox-row { margin-top: 8px; }
