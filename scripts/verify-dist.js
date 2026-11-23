@@ -52,11 +52,13 @@ function verify() {
     "index.html",
     "404.html",
     "sitemap.xml",
+    "rss.xml",
     "robots.txt",
     "ads.txt",
     ".nojekyll",
     "about/index.html",
     "privacy/index.html",
+    "weekly-holiday/2027-minimum-wage/index.html",
     "assets/styles.css",
     "assets/wage-tax-table-2026.js",
     "assets/calculators.js",
@@ -102,13 +104,21 @@ function verify() {
   assert(sitemap.includes(`<loc>${BASE_URL}/</loc>`), "Sitemap missing home URL");
   assert(sitemap.includes(`<loc>${BASE_URL}/about/</loc>`), "Sitemap missing /about/");
   assert(sitemap.includes(`<loc>${BASE_URL}/privacy/</loc>`), "Sitemap missing /privacy/");
+  assert(
+    sitemap.includes(`<loc>${BASE_URL}/weekly-holiday/2027-minimum-wage/</loc>`),
+    "Sitemap missing /weekly-holiday/2027-minimum-wage/"
+  );
   assert(!sitemap.includes("404.html"), "Sitemap must not include 404.html");
+
+  const rss = fs.readFileSync(path.join(DIST, "rss.xml"), "utf8");
+  assert(rss.includes("<rss version=\"2.0\""), "Invalid rss.xml header");
+  assert(rss.includes(`<link>${BASE_URL}/</link>`), "rss.xml missing channel link");
 
   const robots = fs.readFileSync(path.join(DIST, "robots.txt"), "utf8");
   assert(robots.includes(`Sitemap: ${BASE_URL}/sitemap.xml`), "robots.txt sitemap mismatch");
 
   console.log(
-    `Verified ${htmlFiles.length} HTML pages, ${checkedLinks} internal links, JSON-LD, sitemap.xml, and robots.txt — 0 issues!`
+    `Verified ${htmlFiles.length} HTML pages, ${checkedLinks} internal links, JSON-LD, sitemap.xml, rss.xml, and robots.txt — 0 issues!`
   );
 }
 

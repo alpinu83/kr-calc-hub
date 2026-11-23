@@ -184,6 +184,63 @@ function renderPrevNext(prev, next) {
   `;
 }
 
+function renderCompareTable({ title, subtitle, headers, rows }) {
+  if (!rows || !rows.length) return "";
+  return `
+    <section class="section-block" aria-label="${escapeHtml(title)}">
+      <h2>${escapeHtml(title)}</h2>
+      ${subtitle ? `<p>${escapeHtml(subtitle)}</p>` : ""}
+      <div class="compare-table-wrap">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              ${headers
+                .map((h) => `<th class="${h.num ? "num-col" : ""}">${escapeHtml(h.label)}</th>`)
+                .join("")}
+            </tr>
+          </thead>
+          <tbody>
+            ${rows
+              .map(
+                (r) => `<tr class="${r.current ? "is-current" : ""}">
+                ${r.cells
+                  .map((c, idx) => {
+                    const cls = headers[idx] && headers[idx].num ? ' class="num-col"' : "";
+                    if (c && typeof c === "object" && c.href) {
+                      return `<td${cls}><a href="${c.href}">${escapeHtml(c.label)}</a></td>`;
+                    }
+                    return `<td${cls}>${escapeHtml(c)}</td>`;
+                  })
+                  .join("")}
+              </tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+}
+
+function renderRelatedCalcs(items) {
+  if (!items || !items.length) return "";
+  return `
+    <section class="section-block" aria-label="이어서 계산하기">
+      <h2>이어서 계산해 보세요</h2>
+      <div class="official-grid">
+        ${items
+          .map(
+            (it) => `<a class="official-card" href="${it.href}">
+          <strong>${escapeHtml(it.title)} <span aria-hidden="true">→</span></strong>
+          <span>${escapeHtml(it.desc)}</span>
+        </a>`
+          )
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
 function renderLayout({
   routePath,
   title,
@@ -197,7 +254,7 @@ function renderLayout({
 }) {
   const canonical = `${BASE_URL}${routePath}`;
   if (includeInSitemap) {
-    GENERATED_URLS.push({ loc: canonical, priority });
+    GENERATED_URLS.push({ loc: canonical, priority, title, description });
   }
 
   const jsonLdGraph = [
@@ -293,6 +350,7 @@ function renderLayout({
   <meta name="theme-color" content="#2563eb" />
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
   <link rel="canonical" href="${escapeHtml(canonical)}" />
+  <link rel="alternate" type="application/rss+xml" title="${escapeHtml(DATA.siteName)} RSS" href="/rss.xml" />
   ${googleVerify}
   ${naverVerify}
   <meta property="og:type" content="website" />
@@ -565,19 +623,53 @@ function buildSalaryPages() {
     const res = Calc.calcSalary(manwon * 10000, DATA.salary.defaultNonTaxableMonthly, 1, DATA);
     const prev = idx > 0 ? { href: `/salary/${list[idx - 1]}-manwon/`, label: `연봉 ${formatKoreanManwonLabel(list[idx - 1])}` } : null;
     const next = idx < list.length - 1 ? { href: `/salary/${list[idx + 1]}-manwon/`, label: `연봉 ${formatKoreanManwonLabel(list[idx + 1])}` } : null;
+    const depRows = [1, 2, 3, 4].map((deps) => {
+      const dRes = Calc.calcSalary(manwon * 10000, DATA.salary.defaultNonTaxableMonthly, deps, DATA);
+      return {
+        current: deps === 1,
+        cells: [
+          `${deps}명${deps === 1 ? " (본인)" : ""}`,
+          Calc.formatWon(dRes.incomeTax + dRes.localIncomeTax),
+          Calc.formatWon(dRes.totalDeduction),
+          Calc.formatWon(dRes.monthlyNet),
+          Calc.formatWon(dRes.annualNet)
+        ]
+      };
+    });
+    const salaryCompare = renderCompareTable({
+      title: `연봉 ${label} 부양가족 수별 실수령액 비교`,
+      subtitle: "비과세 식대 월 20만 원·원천징수 100% 기준입니다. 부양가족이 늘면 근로소득세가 줄어듭니다.",
+      headers: [
+        { label: "공제대상가족" },
+        { label: "월 소득세+지방세", num: true },
+        { label: "월 공제 합계", num: true },
+        { label: "월 실수령액", num: true },
+        { label: "연 실수령액", num: true }
+      ],
+      rows: depRows
+    });
     const faqs = [
       {
         q: `연봉 ${label}의 월 실수령액은 얼마인가요?`,
         a: `${DATA.year}년 기준(공제대상가족 1명, 비과세 식대 20만 원, 간이세액표 100%) 세전 월급 ${Calc.formatWon(res.monthlyGross)}에서 ${Calc.formatWon(res.totalDeduction)}을 공제한 약 ${Calc.formatWon(res.monthlyNet)}입니다.`
+      },
+      {
+        q: `연봉 ${label}에서 4대보험료는 매달 얼마가 빠져나가나요?`,
+        a: `국민연금 ${Calc.formatWon(res.nationalPension)}, 건강보험 ${Calc.formatWon(res.healthInsurance)}, 장기요양보험 ${Calc.formatWon(res.longTermCare)}, 고용보험 ${Calc.formatWon(res.employmentInsurance)}을 합해 4대보험 총 ${Calc.formatWon(res.nationalPension + res.healthInsurance + res.longTermCare + res.employmentInsurance)}입니다.`
       }
     ];
+    const related = renderRelatedCalcs([
+      { title: "퇴직금 계산기", desc: `월급 약 ${Math.round(manwon / 12)}만 원 기준 근속연수별 퇴직금`, href: "/severance/" },
+      { title: "실업급여 계산기", desc: "이직·퇴사 시 하루 구직급여와 총 수령액", href: "/unemployment/" },
+      { title: "프리랜서 3.3% 비교", desc: "같은 금액을 사업소득 3.3%로 받을 때 실수령액", href: "/freelancer/" }
+    ]);
 
     writePage(
       `/salary/${manwon}-manwon/`,
       renderLayout({
         routePath: `/salary/${manwon}-manwon/`,
         title: `연봉 ${label} 실수령액 (${Calc.formatWon(res.monthlyNet)})`,
-        description: `${DATA.year}년 연봉 ${label}의 월 실수령액은 ${Calc.formatWon(res.monthlyNet)}입니다. 4대보험과 근로소득세 상세 내역을 확인하세요.`,
+        description: `${DATA.year}년 연봉 ${label}의 월 실수령액은 ${Calc.formatWon(res.monthlyNet)}입니다. 4대보험과 근로소득세 상세 내역 및 부양가족별 비교표를 확인하세요.`,
         activeNav: "salary",
         priority: "0.8",
         breadcrumbs: [
@@ -596,8 +688,10 @@ function buildSalaryPages() {
           </header>
           ${renderSalaryWidget(manwon)}
           ${renderAdSlot("pseoMid")}
+          ${salaryCompare}
           ${renderAffiliateCard("salary")}
           ${renderOfficialLinks("salary")}
+          ${related}
           ${renderPrevNext(prev, next)}
           ${renderFaqSection(faqs)}
           ${matrixLinks(manwon)}
@@ -903,12 +997,52 @@ function buildStockTaxPages() {
     const res = Calc.calcOverseasStockTax(manwon * 10000, 0, DATA);
     const prev = idx > 0 ? { href: `/stock-tax/${list[idx - 1]}-manwon/`, label: `수익 ${formatKoreanManwonLabel(list[idx - 1])}` } : null;
     const next = idx < list.length - 1 ? { href: `/stock-tax/${list[idx + 1]}-manwon/`, label: `수익 ${formatKoreanManwonLabel(list[idx + 1])}` } : null;
+    const lossSteps = [0, 200, 500, 1000].filter((l) => l === 0 || l < manwon);
+    const stockCompare = renderCompareTable({
+      title: `해외주식 수익 ${label} 손익통산 시 세금 비교`,
+      subtitle: "같은 해 실현한 해외주식 손실이 있다면 순수익에서 먼저 빼고 250만 원 기본공제를 적용합니다.",
+      headers: [
+        { label: "연간 실현 손실" },
+        { label: "손익통산 순수익", num: true },
+        { label: "과세표준", num: true },
+        { label: "예상 양도세(22%)", num: true },
+        { label: "세후 순수익", num: true }
+      ],
+      rows: lossSteps.map((lossM) => {
+        const c = Calc.calcOverseasStockTax(manwon * 10000, lossM * 10000, DATA);
+        return {
+          current: lossM === 0,
+          cells: [
+            lossM === 0 ? "손실 없음 (0원)" : `${formatKoreanManwonLabel(lossM)} 손실`,
+            Calc.formatWon(c.netProfit),
+            Calc.formatWon(c.taxableBase),
+            Calc.formatWon(c.totalTax),
+            Calc.formatWon(c.afterTaxProfit)
+          ]
+        };
+      })
+    });
+    const faqs = [
+      {
+        q: `해외주식 수익이 ${label}이면 양도소득세를 얼마나 내나요?`,
+        a: `다른 해외주식 손실이 없다면 기본공제 250만 원을 뺀 과세표준 ${Calc.formatWon(res.taxableBase)}에 22%(양도세 20% + 지방소득세 2%)를 곱해 총 ${Calc.formatWon(res.totalTax)}을 다음 해 5월에 신고·납부합니다.`
+      },
+      {
+        q: `해외주식 ${label} 양도세를 합법적으로 줄이는 방법이 있나요?`,
+        a: "같은 해 12월 말 결제일 전까지 평가손실 종목을 매도해 손익통산하거나, 배우자(10년 6억 원 공제) 증여 후 이월과세 기간(1년) 경과 매도, 2026년 국내시장복귀계좌(RIA) 공제를 검토할 수 있습니다."
+      }
+    ];
+    const related = renderRelatedCalcs([
+      { title: "증여세 계산기", desc: "배우자 6억 원 공제 등 증여 절세 시뮬레이션", href: "/gift-tax/" },
+      { title: "연봉 실수령액", desc: "근로소득 4대보험과 월 실수령액 확인", href: "/salary/" },
+      { title: "프리랜서 3.3%", desc: "5월 종합소득세 신고 대상 사업소득 정산", href: "/freelancer/" }
+    ]);
     writePage(
       `/stock-tax/${manwon}-manwon/`,
       renderLayout({
         routePath: `/stock-tax/${manwon}-manwon/`,
         title: `해외주식 수익 ${label} 양도소득세 (${Calc.formatWon(res.totalTax)})`,
-        description: `해외주식 실현 수익 ${label} 기준 예상 양도소득세는 ${Calc.formatWon(res.totalTax)}입니다.`,
+        description: `해외주식 실현 수익 ${label} 기준 예상 양도소득세는 ${Calc.formatWon(res.totalTax)}입니다. 손익통산 절세 비교표와 신고 기준을 확인하세요.`,
         activeNav: "stock-tax",
         priority: "0.75",
         breadcrumbs: [
@@ -916,6 +1050,7 @@ function buildStockTaxPages() {
           { label: "해외주식 양도세", href: "/stock-tax/" },
           { label: `수익 ${label}`, href: `/stock-tax/${manwon}-manwon/` }
         ],
+        faqs,
         bodyHtml: `
           <header class="page-head">
             <h1>해외주식 수익 ${label} 양도소득세</h1>
@@ -923,10 +1058,13 @@ function buildStockTaxPages() {
           </header>
           ${renderStockTaxWidget(manwon)}
           ${renderAdSlot("pseoMid")}
+          ${stockCompare}
           ${renderAffiliateCard("stockTax")}
           ${renderPartnerCard("stockTax")}
           ${renderOfficialLinks("stockTax")}
+          ${related}
           ${renderPrevNext(prev, next)}
+          ${renderFaqSection(faqs)}
           ${matrixLinks(manwon)}
         `
       })
@@ -1071,15 +1209,70 @@ function buildRealEstatePages() {
   );
 
   list.forEach((eok, idx) => {
-    const res = Calc.calcAcquisitionTax(eok * 100000000, 1, false, DATA);
+    const priceWon = eok * 100000000;
+    const res = Calc.calcAcquisitionTax(priceWon, 1, false, DATA);
     const prev = idx > 0 ? { href: `/real-estate/${list[idx - 1]}-eok/`, label: `${list[idx - 1]}억 원 취등록세` } : null;
     const next = idx < list.length - 1 ? { href: `/real-estate/${list[idx + 1]}-eok/`, label: `${list[idx + 1]}억 원 취등록세` } : null;
+    const scenarios = [
+      { label: "1주택 (전용 85㎡ 이하)", opts: [1, false, {}], current: true },
+      { label: "1주택 (전용 85㎡ 초과)", opts: [1, true, {}] },
+      ...(eok <= 12
+        ? [
+            { label: "생애최초 감면 (최대 200만 원)", opts: [1, false, { relief: "first" }] },
+            { label: "출산·양육 감면 (최대 500만 원)", opts: [1, false, { relief: "birth" }] }
+          ]
+        : []),
+      { label: "2주택 (조정대상지역 8%)", opts: [2, false, { adjusted: true }] },
+      { label: "3주택 (조정대상지역 12%)", opts: [3, false, { adjusted: true }] }
+    ];
+    const reCompare = renderCompareTable({
+      title: `매매가 ${eok}억 원 조건별 취등록세 비교`,
+      subtitle: "보유 주택 수, 조정대상지역 여부, 전용면적 85㎡ 초과 및 생애최초·출산 감면에 따른 총 납부 세액 비교입니다.",
+      headers: [
+        { label: "매수 조건" },
+        { label: "취득세", num: true },
+        { label: "지방교육세", num: true },
+        { label: "농어촌특별세", num: true },
+        { label: "총 납부세액", num: true }
+      ],
+      rows: scenarios.map((sc) => {
+        const c = Calc.calcAcquisitionTax(priceWon, sc.opts[0], sc.opts[1], DATA, sc.opts[2]);
+        return {
+          current: Boolean(sc.current),
+          cells: [
+            sc.label,
+            Calc.formatWon(c.acquisitionTax),
+            Calc.formatWon(c.localEducationTax),
+            Calc.formatWon(c.ruralSpecialTax),
+            Calc.formatWon(c.totalTax)
+          ]
+        };
+      })
+    });
+    const resFirst = eok <= 12 ? Calc.calcAcquisitionTax(priceWon, 1, false, DATA, { relief: "first" }) : null;
+    const faqs = [
+      {
+        q: `${eok}억 원 아파트 1주택 취등록세는 총 얼마인가요?`,
+        a: `전용 85㎡ 이하 1주택(감면 미적용) 기준으로 취득세 ${Calc.formatWon(res.acquisitionTax)}(세율 ${Calc.formatPercent(res.acquisitionRate, 2)})과 지방교육세 ${Calc.formatWon(res.localEducationTax)}를 합해 총 ${Calc.formatWon(res.totalTax)}입니다.`
+      },
+      {
+        q: `${eok}억 원 주택 매수 시 생애최초 감면이 되나요?`,
+        a: resFirst
+          ? `매매가 12억 원 이하 요건에 해당하므로 무주택 세대가 생애최초 주택 구입 시 최대 200만 원을 감면받아 총 세액이 ${Calc.formatWon(resFirst.totalTax)}까지 줄어듭니다.`
+          : "생애최초·출산 주택 취득세 감면은 취득가액 12억 원 이하 주택에만 적용되므로 매매가 12억 원을 초과하는 경우 일반 세율이 적용됩니다."
+      }
+    ];
+    const related = renderRelatedCalcs([
+      { title: "전월세 전환율", desc: "전세 보증금을 월세로 바꿀 때 적정 월세 계산", href: "/jeonse/" },
+      { title: "증여세 계산기", desc: "가족 간 주택 자금·혼인 공제 증여세 확인", href: "/gift-tax/" },
+      { title: "연봉 실수령액", desc: "주담대 상환 여력 확인을 위한 월 실수령액", href: "/salary/" }
+    ]);
     writePage(
       `/real-estate/${eok}-eok/`,
       renderLayout({
         routePath: `/real-estate/${eok}-eok/`,
         title: `${eok}억 원 아파트 취등록세 (${Calc.formatWon(res.totalTax)})`,
-        description: `매매가 ${eok}억 원 1주택(전용 85㎡ 이하, 감면 미적용) 기준 예상 취득세·지방교육세 합계는 ${Calc.formatWon(res.totalTax)}입니다.`,
+        description: `매매가 ${eok}억 원 1주택(전용 85㎡ 이하, 감면 미적용) 기준 예상 취득세·지방교육세 합계는 ${Calc.formatWon(res.totalTax)}입니다. 다주택·생애최초 감면 비교표를 확인하세요.`,
         activeNav: "real-estate",
         priority: "0.75",
         breadcrumbs: [
@@ -1087,6 +1280,7 @@ function buildRealEstatePages() {
           { label: "주택 취등록세", href: "/real-estate/" },
           { label: `${eok}억 원`, href: `/real-estate/${eok}-eok/` }
         ],
+        faqs,
         bodyHtml: `
           <header class="page-head">
             <h1>매매가 ${eok}억 원 주택 취등록세</h1>
@@ -1094,9 +1288,12 @@ function buildRealEstatePages() {
           </header>
           ${renderRealEstateWidget(eok)}
           ${renderAdSlot("pseoMid")}
+          ${reCompare}
           ${renderAffiliateCard("realEstate")}
           ${renderOfficialLinks("realEstate")}
+          ${related}
           ${renderPrevNext(prev, next)}
+          ${renderFaqSection(faqs)}
           ${matrixLinks(eok)}
         `
       })
@@ -1316,12 +1513,53 @@ function buildSeverancePages() {
     const res = Calc.calcSeverance(p.m * 10000, p.y);
     const prev = idx > 0 ? { href: `/severance/${pairs[idx - 1].slug}/`, label: `월 ${pairs[idx - 1].m}만 · ${pairs[idx - 1].y}년 퇴직금` } : null;
     const next = idx < pairs.length - 1 ? { href: `/severance/${pairs[idx + 1].slug}/`, label: `월 ${pairs[idx + 1].m}만 · ${pairs[idx + 1].y}년 퇴직금` } : null;
+    const sevCompare = renderCompareTable({
+      title: `월급 ${p.m}만 원 근속연수별 퇴직금 비교`,
+      subtitle: "퇴직 전 3개월 91일·상여금 없음 기준입니다. 근속연수가 길수록 근속연수공제가 커져 세 부담이 줄어듭니다.",
+      headers: [
+        { label: "근속연수" },
+        { label: "세전 퇴직금", num: true },
+        { label: "근속연수공제", num: true },
+        { label: "퇴직세 합계", num: true },
+        { label: "일시금 세후", num: true }
+      ],
+      rows: yearsList.map((yr) => {
+        const c = Calc.calcSeverance(p.m * 10000, yr);
+        return {
+          current: yr === p.y,
+          cells: [
+            { href: `/severance/${p.m}-manwon-${yr}-year/`, label: `${yr}년 근속` },
+            Calc.formatWon(c.gross),
+            Calc.formatWon(c.serviceDeduction),
+            Calc.formatWon(c.totalTax),
+            Calc.formatWon(c.net)
+          ]
+        };
+      })
+    });
+    const faqs = [
+      {
+        q: `월급 ${p.m}만 원으로 ${p.y}년 근무하면 퇴직금은 얼마인가요?`,
+        a: `3개월 91일·별도 상여금 없음 기준으로 세전 법정 퇴직금은 약 ${Calc.formatWon(res.gross)}이며, 퇴직소득세·지방소득세 합계는 ${Calc.formatWon(res.totalTax)}(일시금 인출 시 세후 ${Calc.formatWon(res.net)})입니다.`
+      },
+      {
+        q: `퇴직금 ${Calc.formatWon(res.gross)}은 IRP 계좌로 받아야 하나요?`,
+        a: res.irpRequired
+          ? "법정 퇴직금이 300만 원을 초과하므로 만 55세 미만 퇴직 시 근로자 명의 IRP 계좌로 세전 전액 이전이 원칙이며, 퇴직소득세는 인출 시점까지 과세이연됩니다."
+          : "퇴직급여가 300만 원 이하에 해당해 IRP 의무 이전 예외 대상이므로 일반 급여 계좌로 일시금 수령이 가능합니다."
+      }
+    ];
+    const related = renderRelatedCalcs([
+      { title: "실업급여 계산기", desc: `월급 ${p.m}만 원 · ${p.y}년 가입 기준 예상 구직급여`, href: "/unemployment/" },
+      { title: "연봉 실수령액", desc: "이직 연봉 협상 시 월 실수령액 시뮬레이션", href: "/salary/" },
+      { title: "증여세 계산기", desc: "가족 자산 이전 시 공제 한도·세액 확인", href: "/gift-tax/" }
+    ]);
     writePage(
       `/severance/${p.slug}/`,
       renderLayout({
         routePath: `/severance/${p.slug}/`,
         title: `월급 ${p.m}만 원 ${p.y}년 근속 퇴직금 (${Calc.formatWon(res.gross)})`,
-        description: `월급 ${p.m}만 원으로 ${p.y}년 근무 시 법정 퇴직금은 약 ${Calc.formatWon(res.gross)}, 퇴직소득세·지방소득세는 ${Calc.formatWon(res.totalTax)}(일시금 기준)입니다.`,
+        description: `월급 ${p.m}만 원으로 ${p.y}년 근무 시 법정 퇴직금은 약 ${Calc.formatWon(res.gross)}, 퇴직소득세·지방소득세는 ${Calc.formatWon(res.totalTax)}(일시금 기준)입니다. 근속연수별 비교표를 확인하세요.`,
         activeNav: "severance",
         priority: "0.75",
         breadcrumbs: [
@@ -1329,6 +1567,7 @@ function buildSeverancePages() {
           { label: "퇴직금", href: "/severance/" },
           { label: `월 ${p.m}만 · ${p.y}년`, href: `/severance/${p.slug}/` }
         ],
+        faqs,
         bodyHtml: `
           <header class="page-head">
             <h1>월급 ${p.m}만 원 · ${p.y}년 근속 퇴직금</h1>
@@ -1336,9 +1575,12 @@ function buildSeverancePages() {
           </header>
           ${renderSeveranceWidget(p.m, p.y)}
           ${renderAdSlot("pseoMid")}
+          ${sevCompare}
           ${renderAffiliateCard("severance")}
           ${renderOfficialLinks("severance")}
+          ${related}
           ${renderPrevNext(prev, next)}
+          ${renderFaqSection(faqs)}
           ${matrixLinks(p.slug)}
         `
       })
@@ -1411,6 +1653,24 @@ function renderUnemploymentWidget(defaultMonthlyManwon, defaultYears) {
 }
 
 function buildUnemploymentPages() {
+  const unempFaqs = [
+    {
+      q: "2026년 실업급여 1일 상한액과 하한액은 얼마인가요?",
+      a: `2026년 기준 1일 구직급여 상한액은 ${Calc.formatWon(DATA.unemployment.dailyUpperLimit)}이며, 1일 8시간 근무 기준 하한액은 2026년 최저시급(${DATA.weeklyHoliday.minimumWage2026.toLocaleString("ko-KR")}원) × 8시간 × 80%인 ${Calc.formatWon(DATA.unemployment.dailyLowerLimit)}입니다.`
+    },
+    {
+      q: "실업급여를 받으려면 고용보험에 얼마나 가입해야 하나요?",
+      a: "이직일 이전 18개월 동안(초단시간 근로자는 24개월) 고용보험 피보험단위기간이 통산 180일 이상이어야 하며, 권고사직·계약만료·정년 등 비자발적 이직 사유에 해당해야 합니다."
+    },
+    {
+      q: "실업급여 수급 기간은 나이와 가입기간에 따라 어떻게 달라지나요?",
+      a: "고용보험 가입기간 1년 미만은 120일이며, 1~3년 150일(50세 이상 180일), 3~5년 180일(50세 이상 210일), 5~10년 210일(50세 이상 240일), 10년 이상 240일(50세 이상 270일)입니다."
+    },
+    {
+      q: "실업급여를 받는 중에 빨리 재취업하면 조기재취업수당을 받나요?",
+      a: "소정급여일수를 2분의 1 이상 남기고 재취업해 12개월 이상 계속 고용되거나 자영업을 영위하면 남은 급여의 50%를 조기재취업수당으로 청구할 수 있습니다."
+    }
+  ];
   const months = DATA.pseo.unemploymentMonthlyManwon;
   const yearsList = DATA.pseo.unemploymentInsuredYears;
   const pairs = [];
@@ -1429,6 +1689,12 @@ function buildUnemploymentPages() {
     </section>
   `;
 
+  const unempRelated = renderRelatedCalcs([
+    { title: "퇴직금 계산기", desc: "퇴사 시 법정 퇴직금과 IRP 퇴직소득세 확인", href: "/severance/" },
+    { title: "연봉 실수령액", desc: "재취업 연봉 조건별 월 실수령액 비교", href: "/salary/" },
+    { title: "주휴수당 계산기", desc: "단시간·아르바이트 시급 기준 주급·월급 산출", href: "/weekly-holiday/" }
+  ]);
+
   writePage(
     "/unemployment/",
     renderLayout({
@@ -1438,6 +1704,7 @@ function buildUnemploymentPages() {
       activeNav: "unemployment",
       priority: "0.9",
       breadcrumbs: [{ label: "홈", href: "/" }, { label: "실업급여", href: "/unemployment/" }],
+      faqs: unempFaqs,
       bodyHtml: `
         <header class="page-head">
           <h1>${DATA.year} 실업급여 계산기</h1>
@@ -1446,22 +1713,60 @@ function buildUnemploymentPages() {
         ${renderUnemploymentWidget(350, 3)}
         ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("unemployment")}
-          ${renderOfficialLinks("unemployment")}
+        ${renderOfficialLinks("unemployment")}
+        ${unempRelated}
         ${matrixLinks(null)}
+        ${renderFaqSection(unempFaqs)}
       `
     })
   );
 
   pairs.forEach((p, idx) => {
     const res = Calc.calcUnemployment(p.m * 10000, false, p.y, DATA);
+    const res50 = Calc.calcUnemployment(p.m * 10000, true, p.y, DATA);
     const prev = idx > 0 ? { href: `/unemployment/${pairs[idx - 1].slug}/`, label: `월 ${pairs[idx - 1].m}만 · ${pairs[idx - 1].y}년` } : null;
     const next = idx < pairs.length - 1 ? { href: `/unemployment/${pairs[idx + 1].slug}/`, label: `월 ${pairs[idx + 1].m}만 · ${pairs[idx + 1].y}년` } : null;
+    const unempCompare = renderCompareTable({
+      title: `월급 ${p.m}만 원 가입기간·연령별 실업급여 비교`,
+      subtitle: `1일 구직급여 ${Calc.formatWon(res.dailyBenefit)}(1일 8시간 근무 기준)를 적용한 총 예상 수령액 비교입니다.`,
+      headers: [
+        { label: "고용보험 가입기간" },
+        { label: "50세 미만 일수", num: true },
+        { label: "50세 미만 총액", num: true },
+        { label: "50세 이상 일수", num: true },
+        { label: "50세 이상 총액", num: true }
+      ],
+      rows: yearsList.map((yr) => {
+        const uUnder = Calc.calcUnemployment(p.m * 10000, false, yr, DATA);
+        const uOver = Calc.calcUnemployment(p.m * 10000, true, yr, DATA);
+        return {
+          current: yr === p.y,
+          cells: [
+            { href: `/unemployment/${p.m}-manwon-${yr}-year/`, label: `${yr}년 가입` },
+            `${uUnder.benefitDays}일`,
+            Calc.formatWon(uUnder.totalBenefit),
+            `${uOver.benefitDays}일`,
+            Calc.formatWon(uOver.totalBenefit)
+          ]
+        };
+      })
+    });
+    const faqs = [
+      {
+        q: `월급 ${p.m}만 원 · 가입 ${p.y}년이면 실업급여를 총 얼마 받나요?`,
+        a: `2026년 1일 8시간 기준 1일 구직급여는 ${Calc.formatWon(res.dailyBenefit)}이며, 만 50세 미만은 ${res.benefitDays}일간 총 ${Calc.formatWon(res.totalBenefit)}, 만 50세 이상(또는 장애인)은 ${res50.benefitDays}일간 총 ${Calc.formatWon(res50.totalBenefit)}을 받을 수 있습니다.`
+      },
+      {
+        q: "실업급여는 한 달에 얼마씩 입금되나요?",
+        a: `실업인정 주기(보통 28일) 또는 30일 환산 기준으로 월 약 ${Calc.formatWon(res.monthlyBenefit)} 수준이 지급됩니다. 단, 1차 실업인정(이직 후 대기기간 7일 제외 8일분)과 마지막 회차는 일수에 따라 달라집니다.`
+      }
+    ];
     writePage(
       `/unemployment/${p.slug}/`,
       renderLayout({
         routePath: `/unemployment/${p.slug}/`,
         title: `월급 ${p.m}만 원 · 가입 ${p.y}년 실업급여 (${Calc.formatWon(res.totalBenefit)})`,
-        description: `퇴직 전 월급 ${p.m}만 원, 고용보험 ${p.y}년 가입 시 예상 실업급여는 총 ${Calc.formatWon(res.totalBenefit)}(${res.benefitDays}일)입니다.`,
+        description: `퇴직 전 월급 ${p.m}만 원, 고용보험 ${p.y}년 가입 시 예상 실업급여는 총 ${Calc.formatWon(res.totalBenefit)}(${res.benefitDays}일)입니다. 연령·기간별 비교표를 확인하세요.`,
         activeNav: "unemployment",
         priority: "0.75",
         breadcrumbs: [
@@ -1469,6 +1774,7 @@ function buildUnemploymentPages() {
           { label: "실업급여", href: "/unemployment/" },
           { label: `월 ${p.m}만 · ${p.y}년`, href: `/unemployment/${p.slug}/` }
         ],
+        faqs,
         bodyHtml: `
           <header class="page-head">
             <h1>월급 ${p.m}만 원 · 가입 ${p.y}년 실업급여</h1>
@@ -1476,9 +1782,12 @@ function buildUnemploymentPages() {
           </header>
           ${renderUnemploymentWidget(p.m, p.y)}
           ${renderAdSlot("pseoMid")}
+          ${unempCompare}
           ${renderAffiliateCard("unemployment")}
           ${renderOfficialLinks("unemployment")}
+          ${unempRelated}
           ${renderPrevNext(prev, next)}
+          ${renderFaqSection(faqs)}
           ${matrixLinks(p.slug)}
         `
       })
@@ -1545,6 +1854,26 @@ function renderWeeklyHolidayWidget(defaultWage, defaultHours) {
 }
 
 function buildWeeklyHolidayPages() {
+  const min2026 = DATA.weeklyHoliday.minimumWage2026;
+  const min2027 = 10700;
+  const whFaqs = [
+    {
+      q: "주휴수당은 어떤 조건을 채워야 받을 수 있나요?",
+      a: "4주 평균 1주 소정근로시간이 15시간 이상이고, 근로계약서에 정한 1주 소정근로일을 모두 개근하면 유급 주휴일 1일분의 수당이 발생합니다. 5인 미만 사업장도 동일하게 지급 대상입니다."
+    },
+    {
+      q: "주휴수당과 월 환산 급여(209시간)는 어떻게 계산하나요?",
+      a: "1주 주휴시간은 (1주 소정근로시간 ÷ 40) × 8시간(최대 8시간)입니다. 월 환산 유급시간은 (소정근로시간 + 주휴시간) × 365 ÷ 7 ÷ 12를 반올림해 주 40시간 기준 209시간으로 계산합니다."
+    },
+    {
+      q: "2026년과 2027년 최저시급 기준 월급은 얼마인가요?",
+      a: `주 40시간(월 209시간) 기준 2026년 최저시급 ${min2026.toLocaleString("ko-KR")}원은 월 ${Calc.formatWon(min2026 * 209)}, 고용노동부가 2026년 8월 확정 고시한 2027년 최저시급 ${min2027.toLocaleString("ko-KR")}원은 월 ${Calc.formatWon(min2027 * 209)}(+${Calc.formatWon((min2027 - min2026) * 209)})입니다.`
+    },
+    {
+      q: "40시간을 넘겨 일하면 주휴수당도 늘어나나요?",
+      a: "법정 소정근로시간 상한은 주 40시간이므로 주휴시간은 최대 8시간까지만 인정됩니다. 40시간 초과 근무분은 5인 이상 사업장 기준 통상임금의 1.5배(연장근로수당)로 별도 가산됩니다."
+    }
+  ];
   const wages = DATA.pseo.weeklyHolidayWages;
   const hours = DATA.pseo.weeklyHolidayHours;
   const pairs = [];
@@ -1558,30 +1887,120 @@ function buildWeeklyHolidayPages() {
     <section class="section-block">
       <h2>시급·근무시간별 주휴수당</h2>
       <div class="link-matrix">
+        <a class="matrix-pill ${currentSlug === "2027-minimum-wage" ? "current" : ""}" href="/weekly-holiday/2027-minimum-wage/">2027 최저시급 10,700원 비교</a>
         ${pairs.map((p) => `<a class="matrix-pill ${currentSlug === p.slug ? "current" : ""}" href="/weekly-holiday/${p.slug}/">${p.w.toLocaleString("ko-KR")}원 · 주 ${p.h}시간</a>`).join("")}
       </div>
     </section>
   `;
+
+  const whRelated = renderRelatedCalcs([
+    { title: "2027 최저임금 10,700원 비교", desc: "2026년 대비 시간별 주휴수당·월급 인상액 한눈에 보기", href: "/weekly-holiday/2027-minimum-wage/" },
+    { title: "연봉 실수령액 계산기", desc: "4대보험 공제 후 실제 통장 입금액 확인", href: "/salary/" },
+    { title: "실업급여 계산기", desc: "퇴사 시 1일 구직급여 하한액과 총 수령액", href: "/unemployment/" }
+  ]);
 
   writePage(
     "/weekly-holiday/",
     renderLayout({
       routePath: "/weekly-holiday/",
       title: `${DATA.year} 주휴수당 계산기 (시급·주급·월급)`,
-      description: "시급과 주간 근무시간에 따른 주휴수당, 주휴 포함 주급, 월 환산 급여 계산기.",
+      description: "시급과 주간 근무시간에 따른 주휴수당, 주휴 포함 주급, 월 환산 급여 계산기. 2026년 10,320원 및 2027년 10,700원 기준 확인.",
       activeNav: "weekly-holiday",
       priority: "0.9",
       breadcrumbs: [{ label: "홈", href: "/" }, { label: "주휴수당", href: "/weekly-holiday/" }],
+      faqs: whFaqs,
       bodyHtml: `
         <header class="page-head">
           <h1>${DATA.year} 주휴수당 계산기</h1>
           <p class="subtitle">시급과 주간 근무시간으로 주휴수당과 월급을 계산합니다.</p>
         </header>
-        ${renderWeeklyHolidayWidget(DATA.weeklyHoliday.minimumWage2026, 20)}
+        ${renderWeeklyHolidayWidget(min2026, 20)}
         ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("weeklyHoliday")}
-          ${renderOfficialLinks("weeklyHoliday")}
+        ${renderOfficialLinks("weeklyHoliday")}
+        ${whRelated}
         ${matrixLinks(null)}
+        ${renderFaqSection(whFaqs)}
+      `
+    })
+  );
+
+  // 2027년 확정 최저임금(10,700원) 비교 가이드 페이지
+  const res2026Full = Calc.calcWeeklyHoliday(min2026, 40, DATA);
+  const res2027Full = Calc.calcWeeklyHoliday(min2027, 40, DATA);
+  const compare2027Table = renderCompareTable({
+    title: "2026년(10,320원) vs 2027년(10,700원) 근무시간별 월급 비교",
+    subtitle: "고용노동부 2026년 8월 5일 확정 고시(전년 대비 +380원, +3.7%) 기준 주휴수당 포함 월 환산액입니다.",
+    headers: [
+      { label: "주 소정근로시간" },
+      { label: "월 유급시간", num: true },
+      { label: "2026년 월급", num: true },
+      { label: "2027년 월급", num: true },
+      { label: "월 인상액", num: true }
+    ],
+    rows: hours.map((h) => {
+      const c26 = Calc.calcWeeklyHoliday(min2026, h, DATA);
+      const c27 = Calc.calcWeeklyHoliday(min2027, h, DATA);
+      return {
+        current: h === 40,
+        cells: [
+          `주 ${h}시간 (주휴 ${c27.holidayHours.toFixed(1)}h)`,
+          `${c27.monthlyPaidHours}시간`,
+          Calc.formatWon(c26.estimatedMonthlyPay),
+          Calc.formatWon(c27.estimatedMonthlyPay),
+          `+${Calc.formatWon(c27.estimatedMonthlyPay - c26.estimatedMonthlyPay)}`
+        ]
+      };
+    })
+  });
+  const faqs2027 = [
+    {
+      q: "2027년 최저시급과 주 40시간 월급은 얼마인가요?",
+      a: `고용노동부가 2026년 8월 5일 확정 고시한 2027년 최저임금은 시급 ${min2027.toLocaleString("ko-KR")}원(2026년 대비 +380원, +3.7%)이며, 주 40시간·월 209시간 기준 세전 월급은 ${Calc.formatWon(res2027Full.estimatedMonthlyPay)}(+${Calc.formatWon(res2027Full.estimatedMonthlyPay - res2026Full.estimatedMonthlyPay)})입니다.`
+    },
+    {
+      q: "2027년 최저임금 기준 일급과 주휴수당은 얼마인가요?",
+      a: `1일 8시간 기준 일급은 ${Calc.formatWon(min2027 * 8)}이며, 주 40시간 개근 시 주휴수당(8시간) ${Calc.formatWon(res2027Full.holidayPay)}을 더해 주급은 ${Calc.formatWon(res2027Full.totalWeeklyPay)}입니다.`
+    },
+    {
+      q: "2027년 수습기간 90% 적용 시급은 얼마인가요?",
+      a: `1년 이상 근로계약을 체결하고 단순노무직종이 아닌 수습 근로자는 최대 3개월까지 최저임금의 90%인 시급 ${Math.round(min2027 * 0.9).toLocaleString("ko-KR")}원을 적용할 수 있습니다.`
+    },
+    {
+      q: "2027년 최저임금은 언제부터 적용되나요?",
+      a: "2027년 1월 1일부터 12월 31일까지 모든 사업장에 업종 구분 없이 동일하게 적용됩니다. 기존 근로계약서에 10,320원으로 적혀 있더라도 2027년 1월 1일부터는 자동으로 10,700원 이상을 지급해야 합니다."
+    }
+  ];
+
+  writePage(
+    "/weekly-holiday/2027-minimum-wage/",
+    renderLayout({
+      routePath: "/weekly-holiday/2027-minimum-wage/",
+      title: `2027 최저임금 10,700원 월급·주휴수당 계산기 (월 ${Calc.formatWon(res2027Full.estimatedMonthlyPay)})`,
+      description: `2027년 확정 최저시급 10,700원(월 209시간 ${Calc.formatWon(res2027Full.estimatedMonthlyPay)}) 기준 주 15~40시간 주휴수당·주급·월급과 2026년 대비 인상액을 계산합니다.`,
+      activeNav: "weekly-holiday",
+      priority: "0.85",
+      breadcrumbs: [
+        { label: "홈", href: "/" },
+        { label: "주휴수당", href: "/weekly-holiday/" },
+        { label: "2027 최저임금 10,700원", href: "/weekly-holiday/2027-minimum-wage/" }
+      ],
+      faqs: faqs2027,
+      bodyHtml: `
+        <header class="page-head">
+          <div class="page-head-row">
+            <h1>2027년 최저임금 10,700원 월급·주휴수당 계산기</h1>
+            <span class="meta-tag">고용노동부 2026. 8. 5. 확정 고시</span>
+          </div>
+          <p class="subtitle">2027년 시급 <strong>10,700원</strong>(전년 대비 +380원·3.7%) 기준 주 40시간 월 환산액은 <strong>${Calc.formatWon(res2027Full.estimatedMonthlyPay)}</strong>입니다.</p>
+        </header>
+        ${renderWeeklyHolidayWidget(min2027, 40)}
+        ${renderAdSlot("pseoMid")}
+        ${compare2027Table}
+        ${renderAffiliateCard("weeklyHoliday")}
+        ${renderOfficialLinks("weeklyHoliday")}
+        ${renderFaqSection(faqs2027)}
+        ${matrixLinks("2027-minimum-wage")}
       `
     })
   );
@@ -1590,12 +2009,46 @@ function buildWeeklyHolidayPages() {
     const res = Calc.calcWeeklyHoliday(p.w, p.h, DATA);
     const prev = idx > 0 ? { href: `/weekly-holiday/${pairs[idx - 1].slug}/`, label: `${pairs[idx - 1].w.toLocaleString("ko-KR")}원 · ${pairs[idx - 1].h}시간` } : null;
     const next = idx < pairs.length - 1 ? { href: `/weekly-holiday/${pairs[idx + 1].slug}/`, label: `${pairs[idx + 1].w.toLocaleString("ko-KR")}원 · ${pairs[idx + 1].h}시간` } : null;
+    const whCompare = renderCompareTable({
+      title: `시급 ${p.w.toLocaleString("ko-KR")}원 주간 근무시간별 주휴수당·월급 비교`,
+      subtitle: "주 15시간 이상 개근 시 주휴수당이 발생하며, 월 환산 유급시간은 법정 기준(주 40시간 = 209시간)을 적용합니다.",
+      headers: [
+        { label: "주 소정근로시간" },
+        { label: "주휴수당", num: true },
+        { label: "주급 (주휴 포함)", num: true },
+        { label: "월 유급시간", num: true },
+        { label: "월 환산 급여", num: true }
+      ],
+      rows: hours.map((hr) => {
+        const c = Calc.calcWeeklyHoliday(p.w, hr, DATA);
+        return {
+          current: hr === p.h,
+          cells: [
+            { href: `/weekly-holiday/${p.w}-won-${hr}-hours/`, label: `주 ${hr}시간` },
+            Calc.formatWon(c.holidayPay),
+            Calc.formatWon(c.totalWeeklyPay),
+            `${c.monthlyPaidHours}시간`,
+            Calc.formatWon(c.estimatedMonthlyPay)
+          ]
+        };
+      })
+    });
+    const faqs = [
+      {
+        q: `시급 ${p.w.toLocaleString("ko-KR")}원으로 주 ${p.h}시간 일하면 주휴수당은 얼마인가요?`,
+        a: `주휴시간은 ${res.holidayHours.toFixed(1)}시간이며 예상 주휴수당은 ${Calc.formatWon(res.holidayPay)}입니다. 기본 주급 ${Calc.formatWon(res.regularPay)}을 더한 주급은 ${Calc.formatWon(res.totalWeeklyPay)}, 월 환산 급여(${res.monthlyPaidHours}시간)는 약 ${Calc.formatWon(res.estimatedMonthlyPay)}입니다.`
+      },
+      {
+        q: "주휴수당을 받으려면 5인 이상 사업장이어야 하나요?",
+        a: "아니요. 주휴수당은 상시 근로자 수와 무관하게 5인 미만 사업장에서도 1주 소정근로시간 15시간 이상·개근 요건을 충족하면 법적으로 반드시 지급해야 합니다."
+      }
+    ];
     writePage(
       `/weekly-holiday/${p.slug}/`,
       renderLayout({
         routePath: `/weekly-holiday/${p.slug}/`,
         title: `시급 ${p.w.toLocaleString("ko-KR")}원 주 ${p.h}시간 주휴수당 (${Calc.formatWon(res.holidayPay)})`,
-        description: `시급 ${p.w.toLocaleString("ko-KR")}원, 주 ${p.h}시간 근무 시 주휴수당은 ${Calc.formatWon(res.holidayPay)}, 주급은 ${Calc.formatWon(res.totalWeeklyPay)}입니다.`,
+        description: `시급 ${p.w.toLocaleString("ko-KR")}원, 주 ${p.h}시간 근무 시 주휴수당은 ${Calc.formatWon(res.holidayPay)}, 주급은 ${Calc.formatWon(res.totalWeeklyPay)}, 월 환산은 ${Calc.formatWon(res.estimatedMonthlyPay)}입니다.`,
         activeNav: "weekly-holiday",
         priority: "0.75",
         breadcrumbs: [
@@ -1603,6 +2056,7 @@ function buildWeeklyHolidayPages() {
           { label: "주휴수당", href: "/weekly-holiday/" },
           { label: `${p.w.toLocaleString("ko-KR")}원 · ${p.h}시간`, href: `/weekly-holiday/${p.slug}/` }
         ],
+        faqs,
         bodyHtml: `
           <header class="page-head">
             <h1>시급 ${p.w.toLocaleString("ko-KR")}원 · 주 ${p.h}시간 주휴수당</h1>
@@ -1610,9 +2064,12 @@ function buildWeeklyHolidayPages() {
           </header>
           ${renderWeeklyHolidayWidget(p.w, p.h)}
           ${renderAdSlot("pseoMid")}
+          ${whCompare}
           ${renderAffiliateCard("weeklyHoliday")}
           ${renderOfficialLinks("weeklyHoliday")}
+          ${whRelated}
           ${renderPrevNext(prev, next)}
+          ${renderFaqSection(faqs)}
           ${matrixLinks(p.slug)}
         `
       })
@@ -1760,15 +2217,63 @@ function buildGiftTaxPages() {
   cases.forEach((c, idx) => {
     const relLabel = RELATION_LABELS[c.relation];
     const amtLabel = formatKoreanManwonLabel(c.amountManwon);
-    const res = Calc.calcGiftTax(c.amountManwon * 10000, c.relation, DATA);
+    const giftWon = c.amountManwon * 10000;
+    const res = Calc.calcGiftTax(giftWon, c.relation, DATA);
+    const resMarriage = Calc.calcGiftTax(giftWon, "adultChild", DATA, { marriageBirth: 100000000 });
     const prev = idx > 0 ? { href: `/gift-tax/${cases[idx - 1].slug}/`, label: `${RELATION_LABELS[cases[idx - 1].relation]} ${formatKoreanManwonLabel(cases[idx - 1].amountManwon)}` } : null;
     const next = idx < cases.length - 1 ? { href: `/gift-tax/${cases[idx + 1].slug}/`, label: `${RELATION_LABELS[cases[idx + 1].relation]} ${formatKoreanManwonLabel(cases[idx + 1].amountManwon)}` } : null;
+    const giftCompareRows = [
+      { label: "배우자 (공제 6억 원)", rel: "spouse", opts: {}, current: c.relation === "spouse" },
+      { label: "성년 자녀 (공제 5,000만 원)", rel: "adultChild", opts: {}, current: c.relation === "adultChild" },
+      { label: "성년 자녀 + 혼인·출산 공제 (1억 5,000만 원)", rel: "adultChild", opts: { marriageBirth: 100000000 }, current: false },
+      { label: "미성년 자녀 (공제 2,000만 원)", rel: "minorChild", opts: {}, current: c.relation === "minorChild" },
+      { label: "기타 친족 (공제 1,000만 원)", rel: "relative", opts: {}, current: c.relation === "relative" }
+    ];
+    const giftCompare = renderCompareTable({
+      title: `증여액 ${amtLabel} 관계별 증여세 비교`,
+      subtitle: "동일인 10년 내 합산 증여 없음·기한 내 자진신고(3% 공제) 기준입니다.",
+      headers: [
+        { label: "수증자 관계" },
+        { label: "적용 공제액", num: true },
+        { label: "과세표준", num: true },
+        { label: "신고공제(3%)", num: true },
+        { label: "최종 납부세액", num: true }
+      ],
+      rows: giftCompareRows.map((row) => {
+        const g = Calc.calcGiftTax(giftWon, row.rel, DATA, row.opts);
+        return {
+          current: row.current,
+          cells: [
+            row.label,
+            Calc.formatWon(g.deductionApplied),
+            Calc.formatWon(g.taxBase),
+            Calc.formatWon(g.voluntaryCredit),
+            Calc.formatWon(g.finalTax)
+          ]
+        };
+      })
+    });
+    const faqs = [
+      {
+        q: `${relLabel}에게 ${amtLabel}을 증여하면 증여세가 얼마 나오나요?`,
+        a: `10년 내 이전 증여가 없고 증여일이 속한 달의 말일부터 3개월 이내 자진신고(3% 세액공제)할 경우 증여재산공제 ${Calc.formatWon(res.deductionApplied)}을 제외한 과세표준 ${Calc.formatWon(res.taxBase)} 기준으로 최종 납부세액은 ${Calc.formatWon(res.finalTax)}입니다.`
+      },
+      {
+        q: `성년 자녀에게 결혼·출산 자금으로 ${amtLabel}을 증여하면 세금이 줄어드나요?`,
+        a: `혼인신고일 전후 2년 또는 자녀 출생일부터 2년 이내라면 기본 5,000만 원에 혼인·출산 공제 1억 원(총 1억 5,000만 원)을 합산 적용해 최종 증여세가 ${Calc.formatWon(resMarriage.finalTax)}로 줄어듭니다.`
+      }
+    ];
+    const related = renderRelatedCalcs([
+      { title: "주택 취등록세", desc: "증여받은 자금으로 주택 매수 시 취등록세 확인", href: "/real-estate/" },
+      { title: "해외주식 양도세", desc: "배우자 증여 활용 해외주식 절세 시뮬레이션", href: "/stock-tax/" },
+      { title: "전월세 전환율", desc: "전세·월세 자금 계획 시 적정 월세 산출", href: "/jeonse/" }
+    ]);
     writePage(
       `/gift-tax/${c.slug}/`,
       renderLayout({
         routePath: `/gift-tax/${c.slug}/`,
         title: `${relLabel} ${amtLabel} 증여세 (${Calc.formatWon(res.finalTax)})`,
-        description: `${relLabel}에게 ${amtLabel} 증여 시 공제 적용 및 자진신고 3% 공제 후 최종 증여세는 ${Calc.formatWon(res.finalTax)}입니다.`,
+        description: `${relLabel}에게 ${amtLabel} 증여 시 공제 적용 및 자진신고 3% 공제 후 최종 증여세는 ${Calc.formatWon(res.finalTax)}입니다. 관계별·혼인출산 공제 비교표를 확인하세요.`,
         activeNav: "gift-tax",
         priority: "0.75",
         breadcrumbs: [
@@ -1776,6 +2281,7 @@ function buildGiftTaxPages() {
           { label: "증여세", href: "/gift-tax/" },
           { label: `${relLabel} ${amtLabel}`, href: `/gift-tax/${c.slug}/` }
         ],
+        faqs,
         bodyHtml: `
           <header class="page-head">
             <h1>${relLabel} ${amtLabel} 증여세</h1>
@@ -1783,10 +2289,13 @@ function buildGiftTaxPages() {
           </header>
           ${renderGiftTaxWidget(c.amountManwon, c.relation)}
           ${renderAdSlot("pseoMid")}
+          ${giftCompare}
           ${renderAffiliateCard("giftTax")}
           ${renderPartnerCard("giftTax")}
           ${renderOfficialLinks("giftTax")}
+          ${related}
           ${renderPrevNext(prev, next)}
+          ${renderFaqSection(faqs)}
           ${matrixLinks(c.slug)}
         `
       })
@@ -1890,6 +2399,7 @@ function buildHomePage() {
             <a class="matrix-pill" href="/severance/350-manwon-3-year/">월 350만 · 3년 퇴직금</a>
             <a class="matrix-pill" href="/unemployment/350-manwon-3-year/">월 350만 · 3년 실업급여</a>
             <a class="matrix-pill" href="/weekly-holiday/${DATA.weeklyHoliday.minimumWage2026}-won-20-hours/">2026 최저시급 주 20시간 주휴수당</a>
+            <a class="matrix-pill" href="/weekly-holiday/2027-minimum-wage/">2027 최저임금 10,700원 비교</a>
             <a class="matrix-pill" href="/stock-tax/1000-manwon/">해외주식 1,000만 원 양도세</a>
             <a class="matrix-pill" href="/gift-tax/adult-child-1-eok/">성년 자녀 1억 증여세</a>
             <a class="matrix-pill" href="/real-estate/6-eok/">6억 아파트 취등록세</a>
@@ -2128,6 +2638,35 @@ ${GENERATED_URLS.map(
 </urlset>
 `;
   fs.writeFileSync(path.join(DIST, "sitemap.xml"), sitemapXml, "utf8");
+
+  const pubDate = new Date(`${DATA.updatedAt}T00:00:00Z`).toUTCString();
+  const rssItems = [...GENERATED_URLS]
+    .sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0))
+    .slice(0, 60);
+  const rssXml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>${escapeHtml(DATA.siteName)} · ${escapeHtml(DATA.siteTagline)}</title>
+    <link>${escapeHtml(BASE_URL)}/</link>
+    <description>${escapeHtml(DATA.year + "년 한국 세금·금융·근로 실수령 계산기 9종 및 구간별 계산 가이드")}</description>
+    <language>ko</language>
+    <lastBuildDate>${pubDate}</lastBuildDate>
+    <atom:link href="${escapeHtml(BASE_URL)}/rss.xml" rel="self" type="application/rss+xml" />
+${rssItems
+  .map(
+    (u) => `    <item>
+      <title>${escapeHtml(u.title || DATA.siteName)}</title>
+      <link>${escapeHtml(u.loc)}</link>
+      <guid isPermaLink="true">${escapeHtml(u.loc)}</guid>
+      <description>${escapeHtml(u.description || DATA.siteTagline)}</description>
+      <pubDate>${pubDate}</pubDate>
+    </item>`
+  )
+  .join("\n")}
+  </channel>
+</rss>
+`;
+  fs.writeFileSync(path.join(DIST, "rss.xml"), rssXml, "utf8");
 
   const robotsTxt = `User-agent: *
 Allow: /
