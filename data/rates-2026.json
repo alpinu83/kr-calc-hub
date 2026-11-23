@@ -382,5 +382,207 @@
       "url": "https://www.hometax.go.kr",
       "sponsored": false
     }
-  }
+  },
+  "officialLinks": {
+    "salary": [
+      {
+        "label": "국세청 홈택스",
+        "desc": "연말정산 간소화 자료 조회·근로소득 원천징수영수증 발급",
+        "url": "https://www.hometax.go.kr"
+      },
+      {
+        "label": "4대사회보험 정보연계센터",
+        "desc": "국민연금·건강·고용·산재 보험료 모의계산",
+        "url": "https://www.4insure.or.kr"
+      },
+      {
+        "label": "국민건강보험공단",
+        "desc": "건강·장기요양보험료율 및 보수월액 조회",
+        "url": "https://www.nhis.or.kr"
+      },
+      {
+        "label": "국가법령정보센터",
+        "desc": "소득세법 시행령 별표2 근로소득 간이세액표 원문",
+        "url": "https://www.law.go.kr"
+      }
+    ],
+    "freelancer": [
+      {
+        "label": "국세청 홈택스",
+        "desc": "5월 종합소득세 신고·지급명세서(3.3%) 조회",
+        "url": "https://www.hometax.go.kr"
+      },
+      {
+        "label": "국세청",
+        "desc": "종합소득세 신고 안내·간편장부·경비율 조회",
+        "url": "https://www.nts.go.kr"
+      },
+      {
+        "label": "국민연금공단",
+        "desc": "지역가입자 보험료 신고·조회",
+        "url": "https://www.nps.or.kr"
+      }
+    ],
+    "severance": [
+      {
+        "label": "고용노동부 퇴직금 계산",
+        "desc": "평균임금 기준 공식 퇴직금 모의계산",
+        "url": "https://www.moel.go.kr/retirementpayCal.do"
+      },
+      {
+        "label": "국세청 홈택스",
+        "desc": "퇴직소득 원천징수영수증 조회·과세이연 확인",
+        "url": "https://www.hometax.go.kr"
+      },
+      {
+        "label": "통합연금포털(금감원)",
+        "desc": "내 퇴직연금·IRP 적립금 한눈에 조회",
+        "url": "https://100lifeplan.fss.or.kr"
+      },
+      {
+        "label": "고용노동부 1350 상담",
+        "desc": "퇴직금 미지급·평균임금 산정 상담",
+        "url": "https://1350.moel.go.kr"
+      }
+    ],
+    "unemployment": [
+      {
+        "label": "고용24",
+        "desc": "실업급여 수급자격 신청·실업인정·모의계산",
+        "url": "https://www.work24.go.kr"
+      },
+      {
+        "label": "고용보험",
+        "desc": "피보험자격 이력 조회(가입기간 확인)",
+        "url": "https://www.ei.go.kr"
+      },
+      {
+        "label": "고용노동부 1350 상담",
+        "desc": "비자발적 이직 사유·수급 요건 상담",
+        "url": "https://1350.moel.go.kr"
+      }
+    ],
+    "weeklyHoliday": [
+      {
+        "label": "최저임금위원회",
+        "desc": "연도별 최저임금 고시액 확인",
+        "url": "https://www.minimumwage.go.kr"
+      },
+      {
+        "label": "고용노동부",
+        "desc": "표준근로계약서·근로기준법 안내",
+        "url": "https://www.moel.go.kr"
+      },
+      {
+        "label": "고용노동부 1350 상담",
+        "desc": "주휴수당·임금체불 상담 및 진정 안내",
+        "url": "https://1350.moel.go.kr"
+      }
+    ],
+    "stockTax": [
+      {
+        "label": "국세청 홈택스",
+        "desc": "해외주식 양도소득세 5월 확정신고",
+        "url": "https://www.hometax.go.kr"
+      },
+      {
+        "label": "금융감독원",
+        "desc": "국내시장복귀계좌(RIA) 유의사항 안내",
+        "url": "https://www.fss.or.kr"
+      },
+      {
+        "label": "국가법령정보센터",
+        "desc": "조세특례제한법 제91조의26(RIA) 원문",
+        "url": "https://www.law.go.kr"
+      }
+    ],
+    "realEstate": [
+      {
+        "label": "위택스",
+        "desc": "취득세 신고·납부, 생애최초·출산 감면 신청",
+        "url": "https://www.wetax.go.kr"
+      },
+      {
+        "label": "국토교통부 실거래가",
+        "desc": "아파트·주택 실거래가 조회",
+        "url": "https://rt.molit.go.kr"
+      },
+      {
+        "label": "부동산공시가격알리미",
+        "desc": "공시가격 확인(1억 이하 중과 제외 판단)",
+        "url": "https://www.realtyprice.kr"
+      },
+      {
+        "label": "인터넷등기소",
+        "desc": "등기부등본 열람·소유권 이전 등기",
+        "url": "https://www.iros.go.kr"
+      }
+    ],
+    "giftTax": [
+      {
+        "label": "국세청 홈택스",
+        "desc": "증여세 신고(3개월 이내 신고세액공제 3%)",
+        "url": "https://www.hometax.go.kr"
+      },
+      {
+        "label": "국세청",
+        "desc": "상속·증여세 안내 및 재산평가",
+        "url": "https://www.nts.go.kr"
+      },
+      {
+        "label": "국가법령정보센터",
+        "desc": "상속세 및 증여세법 제53조·제53조의2 원문",
+        "url": "https://www.law.go.kr"
+      }
+    ],
+    "jeonse": [
+      {
+        "label": "한국은행 기준금리",
+        "desc": "전환율 상한(기준금리 + 2%p) 계산의 기준",
+        "url": "https://www.bok.or.kr/portal/singl/baseRate/list.do?dataSeCd=01&menuNo=200643"
+      },
+      {
+        "label": "국토교통부 실거래가",
+        "desc": "주변 전월세 실거래가 조회",
+        "url": "https://rt.molit.go.kr"
+      },
+      {
+        "label": "주택도시보증공사(HUG)",
+        "desc": "전세보증금반환보증 가입 조건 확인",
+        "url": "https://www.khug.or.kr"
+      },
+      {
+        "label": "대한법률구조공단",
+        "desc": "임대차 분쟁 무료 법률상담",
+        "url": "https://www.klac.or.kr"
+      }
+    ]
+  },
+  "helplines": [
+    {
+      "label": "국세청 세미래 콜센터",
+      "number": "126",
+      "desc": "국세(소득세·양도세·증여세) 상담"
+    },
+    {
+      "label": "고용노동부 고객상담센터",
+      "number": "1350",
+      "desc": "퇴직금·주휴수당·실업급여 상담"
+    },
+    {
+      "label": "국민연금공단",
+      "number": "1355",
+      "desc": "연금보험료·기준소득월액 상담"
+    },
+    {
+      "label": "국민건강보험공단",
+      "number": "1577-1000",
+      "desc": "건강·장기요양보험료 상담"
+    },
+    {
+      "label": "대한법률구조공단",
+      "number": "132",
+      "desc": "임대차·근로 분쟁 무료 법률상담"
+    }
+  ]
 }

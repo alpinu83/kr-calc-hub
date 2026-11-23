@@ -1,47 +1,5 @@
 {
-  "checkedAt": "2026-11-22",
-  "laws": {
-    "income-tax": {
-      "name": "소득세법",
-      "scope": "연봉·퇴직금·해외주식·프리랜서",
-      "effectiveDate": "20260101",
-      "serial": ""
-    },
-    "national-pension": {
-      "name": "국민연금법",
-      "scope": "연봉 4대보험(국민연금 요율 4.75%, 기준소득월액 41만~659만 원)",
-      "effectiveDate": "20260701",
-      "serial": ""
-    },
-    "health-insurance": {
-      "name": "국민건강보험법",
-      "scope": "연봉 4대보험(건강보험 3.595%, 장기요양 13.14%)",
-      "effectiveDate": "20260101",
-      "serial": ""
-    },
-    "employment-insurance": {
-      "name": "고용보험법",
-      "scope": "고용보험료 0.9%·실업급여 상한 68,100원/하한 66,048원",
-      "effectiveDate": "20260101",
-      "serial": ""
-    },
-    "local-tax": {
-      "name": "지방세법",
-      "scope": "주택 취등록세·지방소득세",
-      "effectiveDate": "20260101",
-      "serial": ""
-    },
-    "gift-tax": {
-      "name": "상속세 및 증여세법",
-      "scope": "증여세 공제·세율",
-      "effectiveDate": "20260101",
-      "serial": ""
-    },
-    "minimum-wage": {
-      "name": "2026년 적용 최저임금 고시",
-      "scope": "주휴수당·실업급여 하한액 (시급 10,320원)",
-      "effectiveDate": "20260101",
-      "serial": ""
-    }
-  }
+  "checkedAt": null,
+  "note": "다음 실행 시 법제처 Open API 값으로 자동 초기화됩니다(첫 실행은 알림 없음).",
+  "laws": {}
 }
