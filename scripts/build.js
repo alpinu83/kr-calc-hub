@@ -82,6 +82,28 @@ function renderAffiliateCard(key) {
   `;
 }
 
+function renderOfficialLinks(key) {
+  const links = DATA.officialLinks && DATA.officialLinks[key];
+  if (!links || !links.length) return "";
+  return `
+    <section class="section-block official-links" aria-label="관련 공식 사이트 바로가기">
+      <h2>공식 사이트 바로가기</h2>
+      <p class="official-links-sub">계산 결과를 실제 신고·신청으로 이어갈 수 있는 정부·공공기관 사이트입니다. 새 창으로 열립니다.</p>
+      <div class="official-grid">
+        ${links
+          .map(
+            (l) => `<a class="official-card" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer">
+          <strong>${escapeHtml(l.label)} <span aria-hidden="true">↗</span></strong>
+          <span>${escapeHtml(l.desc)}</span>
+        </a>`
+          )
+          .join("")}
+      </div>
+      <a class="official-more" href="/links/">세금·노동 공식 사이트 전체 모음 →</a>
+    </section>
+  `;
+}
+
 function renderAdSlot(slotKey) {
   const pubId = DATA.monetization && DATA.monetization.adsensePublisherId;
   const slotId =
@@ -305,6 +327,7 @@ function renderLayout({
     <div class="container footer-inner">
       <div>${escapeHtml(DATA.siteName)} · ${DATA.year}년 세율·요율 기준 · 본 계산 결과는 참고용 추정치입니다.</div>
       <nav class="footer-links" aria-label="사이트 안내">
+        <a href="/links/">공식 사이트 모음</a>
         <a href="/about/">사이트 소개 · 면책고지</a>
         <a href="/privacy/">개인정보처리방침</a>
       </nav>
@@ -480,6 +503,7 @@ function buildSalaryPages() {
         ${renderSalaryWidget(5000)}
         ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("salary")}
+          ${renderOfficialLinks("salary")}
         ${matrixLinks(null)}
         ${renderFaqSection(mainFaqs)}
       `
@@ -523,6 +547,7 @@ function buildSalaryPages() {
           ${renderSalaryWidget(manwon)}
           ${renderAdSlot("pseoMid")}
           ${renderAffiliateCard("salary")}
+          ${renderOfficialLinks("salary")}
           ${renderPrevNext(prev, next)}
           ${renderFaqSection(faqs)}
           ${matrixLinks(manwon)}
@@ -630,6 +655,7 @@ function buildFreelancerPages() {
         ${renderFreelancerWidget(300)}
         ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("freelancer")}
+          ${renderOfficialLinks("freelancer")}
         ${matrixLinks(null)}
         ${renderFaqSection(mainFaqs)}
       `
@@ -670,6 +696,7 @@ function buildFreelancerPages() {
           ${renderFreelancerWidget(manwon)}
           ${renderAdSlot("pseoMid")}
           ${renderAffiliateCard("freelancer")}
+          ${renderOfficialLinks("freelancer")}
           ${renderPrevNext(prev, next)}
           ${renderFaqSection(faqs)}
           ${matrixLinks(manwon)}
@@ -811,6 +838,7 @@ function buildStockTaxPages() {
         ${renderStockTaxWidget(1000)}
         ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("stockTax")}
+          ${renderOfficialLinks("stockTax")}
         ${matrixLinks(null)}
         ${renderFaqSection(stockFaqs)}
       `
@@ -843,6 +871,7 @@ function buildStockTaxPages() {
           ${renderStockTaxWidget(manwon)}
           ${renderAdSlot("pseoMid")}
           ${renderAffiliateCard("stockTax")}
+          ${renderOfficialLinks("stockTax")}
           ${renderPrevNext(prev, next)}
           ${matrixLinks(manwon)}
         `
@@ -980,6 +1009,7 @@ function buildRealEstatePages() {
         ${renderRealEstateWidget(6)}
         ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("realEstate")}
+          ${renderOfficialLinks("realEstate")}
         ${matrixLinks(null)}
         ${renderFaqSection(realEstateFaqs)}
       `
@@ -1011,6 +1041,7 @@ function buildRealEstatePages() {
           ${renderRealEstateWidget(eok)}
           ${renderAdSlot("pseoMid")}
           ${renderAffiliateCard("realEstate")}
+          ${renderOfficialLinks("realEstate")}
           ${renderPrevNext(prev, next)}
           ${matrixLinks(eok)}
         `
@@ -1091,6 +1122,7 @@ function buildJeonsePage() {
         </section>
         ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("jeonse")}
+          ${renderOfficialLinks("jeonse")}
         ${renderFaqSection(jeonseFaqs)}
       `
     })
@@ -1219,6 +1251,7 @@ function buildSeverancePages() {
         ${renderSeveranceWidget(350, 3)}
         ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("severance")}
+          ${renderOfficialLinks("severance")}
         ${matrixLinks(null)}
         ${renderFaqSection(severanceFaqs)}
       `
@@ -1250,6 +1283,7 @@ function buildSeverancePages() {
           ${renderSeveranceWidget(p.m, p.y)}
           ${renderAdSlot("pseoMid")}
           ${renderAffiliateCard("severance")}
+          ${renderOfficialLinks("severance")}
           ${renderPrevNext(prev, next)}
           ${matrixLinks(p.slug)}
         `
@@ -1358,6 +1392,7 @@ function buildUnemploymentPages() {
         ${renderUnemploymentWidget(350, 3)}
         ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("unemployment")}
+          ${renderOfficialLinks("unemployment")}
         ${matrixLinks(null)}
       `
     })
@@ -1388,6 +1423,7 @@ function buildUnemploymentPages() {
           ${renderUnemploymentWidget(p.m, p.y)}
           ${renderAdSlot("pseoMid")}
           ${renderAffiliateCard("unemployment")}
+          ${renderOfficialLinks("unemployment")}
           ${renderPrevNext(prev, next)}
           ${matrixLinks(p.slug)}
         `
@@ -1490,6 +1526,7 @@ function buildWeeklyHolidayPages() {
         ${renderWeeklyHolidayWidget(DATA.weeklyHoliday.minimumWage2026, 20)}
         ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("weeklyHoliday")}
+          ${renderOfficialLinks("weeklyHoliday")}
         ${matrixLinks(null)}
       `
     })
@@ -1520,6 +1557,7 @@ function buildWeeklyHolidayPages() {
           ${renderWeeklyHolidayWidget(p.w, p.h)}
           ${renderAdSlot("pseoMid")}
           ${renderAffiliateCard("weeklyHoliday")}
+          ${renderOfficialLinks("weeklyHoliday")}
           ${renderPrevNext(prev, next)}
           ${matrixLinks(p.slug)}
         `
@@ -1657,6 +1695,7 @@ function buildGiftTaxPages() {
         ${renderGiftTaxWidget(10000, "adultChild")}
         ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("giftTax")}
+          ${renderOfficialLinks("giftTax")}
         ${matrixLinks(null)}
         ${renderFaqSection(giftFaqs)}
       `
@@ -1690,6 +1729,7 @@ function buildGiftTaxPages() {
           ${renderGiftTaxWidget(c.amountManwon, c.relation)}
           ${renderAdSlot("pseoMid")}
           ${renderAffiliateCard("giftTax")}
+          ${renderOfficialLinks("giftTax")}
           ${renderPrevNext(prev, next)}
           ${matrixLinks(c.slug)}
         `
@@ -1774,6 +1814,17 @@ function buildHomePage() {
 
         ${renderAdSlot("homeMid")}
 
+        <section class="section-block official-links">
+          <h2>신고·신청은 공식 사이트에서</h2>
+          <div class="official-grid">
+            <a class="official-card" href="https://www.hometax.go.kr" target="_blank" rel="noopener noreferrer"><strong>국세청 홈택스 <span aria-hidden="true">↗</span></strong><span>연말정산·종합소득세·양도세·증여세 신고</span></a>
+            <a class="official-card" href="https://www.wetax.go.kr" target="_blank" rel="noopener noreferrer"><strong>위택스 <span aria-hidden="true">↗</span></strong><span>취득세 등 지방세 신고·납부</span></a>
+            <a class="official-card" href="https://www.work24.go.kr" target="_blank" rel="noopener noreferrer"><strong>고용24 <span aria-hidden="true">↗</span></strong><span>실업급여 신청·실업인정</span></a>
+            <a class="official-card" href="https://www.4insure.or.kr" target="_blank" rel="noopener noreferrer"><strong>4대사회보험 정보연계센터 <span aria-hidden="true">↗</span></strong><span>4대보험료 모의계산·가입내역</span></a>
+          </div>
+          <a class="official-more" href="/links/">공식 사이트·상담 전화 전체 보기 →</a>
+        </section>
+
         <section class="section-block">
           <h2>자주 찾는 구간 바로가기</h2>
           <div class="link-matrix">
@@ -1789,6 +1840,78 @@ function buildHomePage() {
             <a class="matrix-pill" href="/real-estate/6-eok/">6억 아파트 취등록세</a>
           </div>
         </section>
+      `
+    })
+  );
+}
+
+function buildLinksPage() {
+  const groups = [
+    { key: "salary", title: "연봉·4대보험·연말정산", calc: "/salary/" },
+    { key: "freelancer", title: "프리랜서·종합소득세", calc: "/freelancer/" },
+    { key: "severance", title: "퇴직금·퇴직연금(IRP)", calc: "/severance/" },
+    { key: "unemployment", title: "실업급여(구직급여)", calc: "/unemployment/" },
+    { key: "weeklyHoliday", title: "최저임금·주휴수당·근로기준", calc: "/weekly-holiday/" },
+    { key: "stockTax", title: "해외주식 양도소득세", calc: "/stock-tax/" },
+    { key: "realEstate", title: "주택 취득세·부동산", calc: "/real-estate/" },
+    { key: "giftTax", title: "증여세·상속세", calc: "/gift-tax/" },
+    { key: "jeonse", title: "전월세·임대차", calc: "/jeonse/" }
+  ];
+  const faqs = [
+    {
+      q: "세금 신고는 어디서 하나요?",
+      a: "종합소득세·양도소득세·증여세 등 국세는 국세청 홈택스(모바일은 손택스), 취득세 등 지방세는 위택스(서울은 이택스)에서 신고·납부합니다."
+    },
+    {
+      q: "전화로 상담받을 수 있나요?",
+      a: "국세는 국세청 126, 퇴직금·주휴수당·실업급여는 고용노동부 1350, 국민연금은 1355, 건강보험은 1577-1000에서 무료 상담을 받을 수 있습니다."
+    }
+  ];
+  writePage(
+    "/links/",
+    renderLayout({
+      routePath: "/links/",
+      title: "세금·노동 공식 사이트 모음 (홈택스·위택스·고용24)",
+      description: "국세청 홈택스, 위택스, 고용24, 4대보험, 통합연금포털, 실거래가 등 세금·급여·부동산 신고와 조회에 필요한 정부·공공기관 사이트와 상담 전화번호 모음.",
+      activeNav: "",
+      priority: "0.6",
+      breadcrumbs: [
+        { label: "홈", href: "/" },
+        { label: "공식 사이트 모음", href: "/links/" }
+      ],
+      faqs,
+      bodyHtml: `
+        <header class="page-head">
+          <h1>세금·노동 공식 사이트 모음</h1>
+          <p class="subtitle">계산한 뒤 실제 신고·신청·조회를 할 수 있는 정부·공공기관 사이트입니다. 모두 공식 주소로 연결되며 제휴·광고 링크가 아닙니다.</p>
+        </header>
+        ${groups
+          .map(
+            (g) => `
+          <section class="section-block official-links">
+            <h2>${escapeHtml(g.title)} <a class="official-calc-link" href="${g.calc}">계산기 →</a></h2>
+            <div class="official-grid">
+              ${(DATA.officialLinks[g.key] || [])
+                .map(
+                  (l) => `<a class="official-card" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer"><strong>${escapeHtml(l.label)} <span aria-hidden="true">↗</span></strong><span>${escapeHtml(l.desc)}</span></a>`
+                )
+                .join("")}
+            </div>
+          </section>`
+          )
+          .join("")}
+        <section class="section-block">
+          <h2>무료 전화 상담</h2>
+          <div class="official-grid">
+            ${(DATA.helplines || [])
+              .map(
+                (h) => `<a class="official-card" href="tel:${escapeHtml(h.number.replace(/-/g, ""))}"><strong>${escapeHtml(h.label)} · ${escapeHtml(h.number)}</strong><span>${escapeHtml(h.desc)}</span></a>`
+              )
+              .join("")}
+          </div>
+        </section>
+        ${renderAdSlot("calcMid")}
+        ${renderFaqSection(faqs)}
       `
     })
   );
@@ -1988,6 +2111,7 @@ function main() {
   buildUnemploymentPages();
   buildWeeklyHolidayPages();
   buildGiftTaxPages();
+  buildLinksPage();
   buildTrustPages();
   writeSeoFiles();
   const elapsed = Date.now() - start;
