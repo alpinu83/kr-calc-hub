@@ -46,7 +46,7 @@ const WATCH_TARGETS = [
   { id: "housing-lease-decree", target: "eflaw", query: "주택임대차보호법 시행령", scope: "전월세 전환율 상한(제9조)" },
   // 행정규칙(고시)
   { id: "minimum-wage", target: "admrul", query: "최저임금 고시", mustInclude: ["적용 최저임금"], exclude: ["선원"], scope: "주휴수당·실업급여 하한액(최저시급)" },
-  { id: "pension-income-cap", target: "admrul", query: "기준소득월액", mustInclude: ["기준소득월액"], exclude: [], scope: "국민연금 기준소득월액 상·하한" }
+  { id: "pension-income-cap", target: "admrul", query: "기준소득월액", mustInclude: ["기준소득월액", "상한"], exclude: ["공무원", "군인", "사립학교", "별정우체국", "평균액"], scope: "국민연금 기준소득월액 상·하한" }
 ];
 
 // 법령으로 감지할 수 없는 항목: 매 점검 이슈에 수동 확인 체크리스트로 포함
