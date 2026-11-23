@@ -86,6 +86,23 @@ function renderAffiliateCard(key) {
   `;
 }
 
+function renderPartnerCard(key) {
+  const p = DATA.partners && DATA.partners[key];
+  if (!p || !p.url) return "";
+  return `
+    <aside class="partner-card" aria-label="제휴 광고">
+      <span class="partner-badge">${escapeHtml(DATA.partnerDisclosure || "광고 · 제휴 링크")}</span>
+      <div class="partner-body">
+        <div>
+          <strong>${escapeHtml(p.title)}</strong>
+          <span>${escapeHtml(p.description)}</span>
+        </div>
+        <a class="partner-cta" href="${escapeHtml(p.url)}" target="_blank" rel="sponsored noopener noreferrer">${escapeHtml(p.cta)} →</a>
+      </div>
+    </aside>
+  `;
+}
+
 function renderOfficialLinks(key) {
   const links = DATA.officialLinks && DATA.officialLinks[key];
   if (!links || !links.length) return "";
@@ -659,6 +676,7 @@ function buildFreelancerPages() {
         ${renderFreelancerWidget(300)}
         ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("freelancer")}
+          ${renderPartnerCard("freelancer")}
           ${renderOfficialLinks("freelancer")}
         ${matrixLinks(null)}
         ${renderFaqSection(mainFaqs)}
@@ -700,6 +718,7 @@ function buildFreelancerPages() {
           ${renderFreelancerWidget(manwon)}
           ${renderAdSlot("pseoMid")}
           ${renderAffiliateCard("freelancer")}
+          ${renderPartnerCard("freelancer")}
           ${renderOfficialLinks("freelancer")}
           ${renderPrevNext(prev, next)}
           ${renderFaqSection(faqs)}
@@ -842,6 +861,7 @@ function buildStockTaxPages() {
         ${renderStockTaxWidget(1000)}
         ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("stockTax")}
+          ${renderPartnerCard("stockTax")}
           ${renderOfficialLinks("stockTax")}
         ${matrixLinks(null)}
         ${renderFaqSection(stockFaqs)}
@@ -875,6 +895,7 @@ function buildStockTaxPages() {
           ${renderStockTaxWidget(manwon)}
           ${renderAdSlot("pseoMid")}
           ${renderAffiliateCard("stockTax")}
+          ${renderPartnerCard("stockTax")}
           ${renderOfficialLinks("stockTax")}
           ${renderPrevNext(prev, next)}
           ${matrixLinks(manwon)}
@@ -1699,6 +1720,7 @@ function buildGiftTaxPages() {
         ${renderGiftTaxWidget(10000, "adultChild")}
         ${renderAdSlot("calcMid")}
         ${renderAffiliateCard("giftTax")}
+          ${renderPartnerCard("giftTax")}
           ${renderOfficialLinks("giftTax")}
         ${matrixLinks(null)}
         ${renderFaqSection(giftFaqs)}
@@ -1733,6 +1755,7 @@ function buildGiftTaxPages() {
           ${renderGiftTaxWidget(c.amountManwon, c.relation)}
           ${renderAdSlot("pseoMid")}
           ${renderAffiliateCard("giftTax")}
+          ${renderPartnerCard("giftTax")}
           ${renderOfficialLinks("giftTax")}
           ${renderPrevNext(prev, next)}
           ${matrixLinks(c.slug)}
@@ -2011,6 +2034,7 @@ function buildTrustPages() {
           <p>본 사이트는 서비스 품질 개선 및 무료 운영 유지를 위해 향후 아래와 같은 제3자 도구를 사용할 수 있습니다.</p>
           <ul>
             <li><strong>웹 접속 통계 (Google Analytics 등)</strong>: 방문 페이지, 체류 시간, 기기 유형 등 개인을 직접 식별하지 않는 익명화된 트래픽 통계 분석</li>
+            <li><strong>제휴 링크 (링크프라이스)</strong>: "광고"로 표시된 제휴 링크를 누르면 성과 확인을 위해 링크프라이스와 제휴사가 쿠키를 사용할 수 있습니다. 계산기에 입력한 값은 전달되지 않습니다.</li>
             <li><strong>광고 서비스 (Google AdSense 등)</strong>: 제3자 광고 사업자가 이용자의 이전 방문 기록을 바탕으로 맞춤형 광고를 제공하기 위해 쿠키를 사용할 수 있습니다.</li>
           </ul>
           <p>이용자는 브라우저 설정에서 쿠키 저장을 거부하거나, <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer">Google 광고 설정</a>에서 맞춤형 광고를 비활성화할 수 있습니다.</p>
