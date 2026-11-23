@@ -25,6 +25,10 @@
     return el ? el.value : fallback;
   }
 
+  function negWon(value) {
+    return (value > 0 ? "-" : "") + Calc.formatWon(value);
+  }
+
   function showToast(message) {
     let el = $("semnote-toast");
     if (!el) {
@@ -128,7 +132,7 @@
       setText("res-employment", Calc.formatWon(res.employmentInsurance));
       setText("res-income-tax", Calc.formatWon(res.incomeTax));
       setText("res-local-tax", Calc.formatWon(res.localIncomeTax));
-      setText("res-total-deduction", "-" + Calc.formatWon(res.totalDeduction));
+      setText("res-total-deduction", negWon(res.totalDeduction));
       setNote(
         "res-salary-note",
         res.childDeduction > 0
@@ -174,7 +178,7 @@
       setText("res-free-gross", Calc.formatWon(res.gross));
       setText("res-free-income", Calc.formatWon(res.incomeTax));
       setText("res-free-local", Calc.formatWon(res.localTax));
-      setText("res-free-total-tax", "-" + Calc.formatWon(res.totalTax));
+      setText("res-free-total-tax", negWon(res.totalTax));
       setText("res-free-net", Calc.formatWon(res.net));
       const netRatio = res.gross > 0 ? res.net / res.gross : 1;
       setBar("bar-free-net", "bar-free-deduct", netRatio);
@@ -219,8 +223,8 @@
         "세후 순수익 " + Calc.formatWon(res.afterTaxProfit) + " · 실효세율 " + Calc.formatPercent(res.effectiveRate, 1)
       );
       setText("res-stock-net-profit", Calc.formatWon(res.netProfit));
-      setText("res-stock-ria", "-" + Calc.formatWon(res.riaDeduction) + (res.riaRate > 0 ? " (" + Math.round(res.riaRate * 1000) / 10 + "%)" : ""));
-      setText("res-stock-deduction", "-" + Calc.formatWon(res.deductionApplied));
+      setText("res-stock-ria", negWon(res.riaDeduction) + (res.riaRate > 0 ? " (" + Math.round(res.riaRate * 1000) / 10 + "%)" : ""));
+      setText("res-stock-deduction", negWon(res.deductionApplied));
       setText("res-stock-base", Calc.formatWon(res.taxableBase));
       setText("res-stock-cap-tax", Calc.formatWon(res.capitalGainsTax));
       setText("res-stock-local-tax", Calc.formatWon(res.localTax));
@@ -259,7 +263,7 @@
       );
       setText("res-re-price", Calc.formatWon(res.price));
       setText("res-re-acq-before", Calc.formatWon(res.acquisitionTaxBeforeRelief));
-      setText("res-re-relief", "-" + Calc.formatWon(res.reliefAmount));
+      setText("res-re-relief", negWon(res.reliefAmount));
       setText("res-re-acq", Calc.formatWon(res.acquisitionTax));
       setText("res-re-edu", Calc.formatWon(res.localEducationTax));
       setText("res-re-rural", Calc.formatWon(res.ruralSpecialTax));
@@ -346,10 +350,10 @@
       }
       setText("res-sev-daily", Calc.formatWon(res.dailyAverageWage) + " (" + res.threeMonthDays + "일 기준)");
       setText("res-sev-gross", Calc.formatWon(res.gross));
-      setText("res-sev-ded", "-" + Calc.formatWon(res.serviceDeduction));
+      setText("res-sev-ded", negWon(res.serviceDeduction));
       setText("res-sev-inc", Calc.formatWon(res.retirementIncomeTax));
       setText("res-sev-loc", Calc.formatWon(res.localTax));
-      setText("res-sev-tax", "-" + Calc.formatWon(res.totalTax));
+      setText("res-sev-tax", negWon(res.totalTax));
       setText("res-sev-net", Calc.formatWon(res.net));
     }
 
@@ -450,13 +454,13 @@
       setText("res-gift-final", Calc.formatWon(res.finalTax));
       setText("res-gift-sub", "신고세액공제 3% 적용 · 실효세율 " + Calc.formatPercent(res.effectiveRate, 1));
       setText("res-gift-gross", Calc.formatWon(res.gift));
-      setText("res-gift-ded", "-" + Calc.formatWon(res.deductionApplied - res.marriageBirthDeduction));
-      setText("res-gift-mb", "-" + Calc.formatWon(res.marriageBirthDeduction));
+      setText("res-gift-ded", negWon(res.deductionApplied - res.marriageBirthDeduction));
+      setText("res-gift-mb", negWon(res.marriageBirthDeduction));
       setText("res-gift-base", Calc.formatWon(res.taxBase));
       setText("res-gift-calc", Calc.formatWon(res.calculatedTax));
       setText("res-gift-surcharge", Calc.formatWon(res.generationSkipSurcharge));
-      setText("res-gift-prior", "-" + Calc.formatWon(res.priorTaxCredit));
-      setText("res-gift-credit", "-" + Calc.formatWon(res.voluntaryCredit));
+      setText("res-gift-prior", negWon(res.priorTaxCredit));
+      setText("res-gift-credit", negWon(res.voluntaryCredit));
     }
 
     bindInputs(["gift-amount", "gift-relation", "gift-marriage", "gift-marriage-used", "gift-used-ded", "gift-prior-tax"], update);

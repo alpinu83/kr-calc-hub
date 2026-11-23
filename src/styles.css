@@ -1050,3 +1050,41 @@ a {
   color: #2563eb;
   text-decoration: none;
 }
+
+/* 한국어 줄바꿈: 단어(어절) 단위로 끊고, 제목은 줄 길이를 고르게, 본문은 마지막 줄 한 단어 방지 */
+body {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+h1, h2, h3, .dir-card h2, .sheet-title, .result-label {
+  text-wrap: balance;
+}
+p, li, .subtitle, .dir-card p, .faq-item p, .calc-note, .result-note, .official-card span, .affiliate-strip span, .field label {
+  text-wrap: pretty;
+}
+.result-main, .breakdown-table td, .stat-item strong, .matrix-pill {
+  white-space: nowrap;
+}
+
+.checkbox-hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #64748b;
+  font-weight: 400;
+}
+
+.field .checkbox-row,
+.calc-details .checkbox-row {
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+.checkbox-row input {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+.checkbox-row > span {
+  flex: 1 1 auto;
+  text-align: left;
+}
