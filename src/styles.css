@@ -1441,4 +1441,225 @@ p, li, .subtitle, .dir-card p, .faq-item p, .calc-note, .result-note, .official-
   }
 }
 
+/* 계산 결과 공유 모달 (PC·모바일 공통) */
+.share-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.52);
+  backdrop-filter: blur(4px);
+}
+
+.share-modal {
+  width: 100%;
+  max-width: 440px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px 22px 20px;
+  box-shadow: 0 24px 50px -12px rgba(15, 23, 42, 0.28);
+}
+
+.share-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.share-modal-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.share-close-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: var(--surface-subtle);
+  color: var(--ink-2);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.share-close-btn:hover {
+  background: var(--line);
+  color: var(--ink);
+}
+
+.share-preview {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--blue-tint);
+  border: 1px solid var(--blue-border);
+  color: #1e3a8a;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.55;
+  margin-bottom: 12px;
+  word-break: keep-all;
+}
+
+.share-url-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.share-url-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 38px;
+  padding: 0 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface-muted);
+  color: var(--ink-2);
+  font-family: var(--font);
+  font-size: 0.8rem;
+}
+
+.share-url-copy {
+  flex: 0 0 auto;
+  height: 38px;
+  padding: 0 13px;
+  border: 1px solid var(--ink);
+  border-radius: 8px;
+  background: var(--ink);
+  color: #ffffff;
+  font-family: var(--font);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.share-url-copy:hover {
+  background: var(--blue);
+  border-color: var(--blue);
+}
+
+.share-btn-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.share-opt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 0.83rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.share-opt-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-xs);
+}
+
+.share-opt-btn.opt-primary {
+  grid-column: 1 / -1;
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #ffffff;
+}
+
+.share-opt-btn.opt-primary:hover {
+  background: var(--blue-hover);
+}
+
+.share-opt-btn.opt-naver {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+.share-opt-btn.opt-band {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+
+.share-opt-btn.opt-x {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.share-opt-btn.opt-img {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.share-opt-btn.opt-native {
+  grid-column: 1 / -1;
+  background: #fefce8;
+  border-color: #fde047;
+  color: #854d0e;
+}
+
+/* 홈 4대 카테고리 섹션 (20종 계산기) */
+.home-cat-group {
+  margin-bottom: 26px;
+}
+
+.home-cat-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 12px;
+}
+
+.home-cat-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.home-cat-head span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.home-cat-group .directory-grid {
+  margin-bottom: 0;
+}
+
+.dir-badge-new {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 0.68rem;
+  font-weight: 800;
+  vertical-align: middle;
+}
+
+
 

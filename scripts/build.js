@@ -4,6 +4,8 @@
 const fs = require("fs");
 const path = require("path");
 const Calc = require("../src/calculators");
+require("../src/calculators-ext");
+const buildExtendedPages = require("./build-ext");
 
 const ROOT = path.resolve(__dirname, "..");
 const DIST = path.join(ROOT, "dist");
@@ -43,7 +45,17 @@ function cleanDist() {
 }
 
 function copyAssets() {
-  const files = ["styles.css", "wage-tax-table-2026.js", "calculators.js", "app.js", "favicon.svg", "og-image.svg", "profile.jpg"];
+  const files = [
+    "styles.css",
+    "wage-tax-table-2026.js",
+    "calculators.js",
+    "calculators-ext.js",
+    "app.js",
+    "app-ext.js",
+    "favicon.svg",
+    "og-image.svg",
+    "profile.jpg"
+  ];
   for (const file of files) {
     fs.copyFileSync(path.join(ROOT, "src", file), path.join(DIST, "assets", file));
   }
@@ -339,15 +351,15 @@ function renderLayout({
   }
 
   const navItems = [
+    { id: "home", label: "전체 20종", href: "/" },
+    { id: "year-end-tax", label: "연말정산", href: "/year-end-tax/" },
+    { id: "couple-tax", label: "맞벌이", href: "/couple-tax/" },
+    { id: "business-tax", label: "종소세", href: "/business-tax/" },
     { id: "salary", label: "연봉", href: "/salary/" },
-    { id: "freelancer", label: "3.3%", href: "/freelancer/" },
-    { id: "severance", label: "퇴직금", href: "/severance/" },
-    { id: "unemployment", label: "실업급여", href: "/unemployment/" },
-    { id: "weekly-holiday", label: "주휴수당", href: "/weekly-holiday/" },
-    { id: "stock-tax", label: "해외주식", href: "/stock-tax/" },
-    { id: "real-estate", label: "취등록세", href: "/real-estate/" },
+    { id: "transfer-tax", label: "양도세", href: "/transfer-tax/" },
+    { id: "inheritance-tax", label: "상속세", href: "/inheritance-tax/" },
     { id: "gift-tax", label: "증여세", href: "/gift-tax/" },
-    { id: "jeonse", label: "전월세", href: "/jeonse/" },
+    { id: "real-estate", label: "취등록세", href: "/real-estate/" },
     { id: "tips", label: "절세꿀팁", href: "/tips/" }
   ];
 
@@ -460,7 +472,9 @@ function renderLayout({
 
   <script src="/assets/wage-tax-table-2026.js"></script>
   <script src="/assets/calculators.js"></script>
+  <script src="/assets/calculators-ext.js"></script>
   <script src="/assets/app.js"></script>
+  <script src="/assets/app-ext.js"></script>
 </body>
 </html>`;
 }
@@ -2365,15 +2379,15 @@ function buildHomePage() {
     renderLayout({
       routePath: "/",
       title: `${DATA.siteTagline}`,
-      description: `${DATA.year}년 한국 세금·금융 계산기 9종. 연봉 실수령액, 프리랜서 3.3%, 퇴직금, 실업급여, 주휴수당, 해외주식 양도세, 주택 취등록세, 증여세, 전월세 전환율.`,
-      activeNav: "",
+      description: `${DATA.year}년 한국 세금·금융 계산기 20종. 연말정산, 맞벌이 절세, 종합소득세, 연봉 실수령액, 프리랜서 3.3%, 상속세, 증여세, 부동산 양도세, 취등록세, 보유세, 부가세, 자동차세, 근로장려금까지.`,
+      activeNav: "home",
       priority: "1.0",
       breadcrumbs: [],
       bodyHtml: `
         <header class="page-head hero-head">
           <div class="page-head-row">
             <h1>${DATA.year} 세금·금융 실수령 계산기</h1>
-            <span class="meta-tag">9종 계산기 · ${DATA.updatedAt} 법령 기준 갱신</span>
+            <span class="meta-tag">20종 계산기 · ${DATA.updatedAt} 법령 기준 갱신</span>
           </div>
           <div class="stat-strip" aria-label="2026년 확정 법정 기준 요약">
             <div class="stat-item"><span>최저시급</span><strong class="num">${DATA.weeklyHoliday.minimumWage2026.toLocaleString("ko-KR")}원</strong></div>
@@ -2383,59 +2397,147 @@ function buildHomePage() {
           </div>
         </header>
 
-        <section class="directory-grid" aria-label="전체 계산기">
-          <a class="dir-card" href="/salary/">
-            <div class="dir-top"><span class="dir-cat">급여 · 4대보험</span><span class="dir-arrow" aria-hidden="true">→</span></div>
-            <h2>연봉 실수령액</h2>
-            <p>4대보험과 소득세를 뺀 월 실수령액</p>
-          </a>
-          <a class="dir-card" href="/freelancer/">
-            <div class="dir-top"><span class="dir-cat">사업소득</span><span class="dir-arrow" aria-hidden="true">→</span></div>
-            <h2>프리랜서 3.3%</h2>
-            <p>3.3% 뗀 실수령액과 세전 금액 역산</p>
-          </a>
-          <a class="dir-card" href="/severance/">
-            <div class="dir-top"><span class="dir-cat">퇴직 · 이직</span><span class="dir-arrow" aria-hidden="true">→</span></div>
-            <h2>퇴직금 계산기</h2>
-            <p>법정 퇴직금과 퇴직소득세</p>
-          </a>
-          <a class="dir-card" href="/unemployment/">
-            <div class="dir-top"><span class="dir-cat">고용보험</span><span class="dir-arrow" aria-hidden="true">→</span></div>
-            <h2>실업급여 계산기</h2>
-            <p>하루 수령액과 총 받는 금액</p>
-          </a>
-          <a class="dir-card" href="/weekly-holiday/">
-            <div class="dir-top"><span class="dir-cat">단시간 근로</span><span class="dir-arrow" aria-hidden="true">→</span></div>
-            <h2>주휴수당 계산기</h2>
-            <p>주휴수당과 월급 환산액</p>
-          </a>
-          <a class="dir-card" href="/stock-tax/">
-            <div class="dir-top"><span class="dir-cat">해외투자</span><span class="dir-arrow" aria-hidden="true">→</span></div>
-            <h2>해외주식 양도세</h2>
-            <p>250만 원 공제 후 양도세 22%</p>
-          </a>
-          <a class="dir-card" href="/real-estate/">
-            <div class="dir-top"><span class="dir-cat">부동산</span><span class="dir-arrow" aria-hidden="true">→</span></div>
-            <h2>주택 취등록세</h2>
-            <p>다주택 중과와 감면까지 반영한 취득세</p>
-          </a>
-          <a class="dir-card" href="/gift-tax/">
-            <div class="dir-top"><span class="dir-cat">상속 · 증여</span><span class="dir-arrow" aria-hidden="true">→</span></div>
-            <h2>증여세 계산기</h2>
-            <p>관계별 공제와 혼인·출산 공제 반영</p>
-          </a>
-          <a class="dir-card" href="/jeonse/">
-            <div class="dir-top"><span class="dir-cat">임대차</span><span class="dir-arrow" aria-hidden="true">→</span></div>
-            <h2>전월세 전환율</h2>
-            <p>보증금을 월세로 바꿀 때 적정 월세</p>
-          </a>
+        <section class="home-cat-group" aria-label="근로 · 연말정산 계산기">
+          <div class="home-cat-head">
+            <h2>근로 · 연말정산</h2>
+            <span>7종</span>
+          </div>
+          <div class="directory-grid">
+            <a class="dir-card" href="/year-end-tax/">
+              <div class="dir-top"><span class="dir-cat">연말정산</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>연말정산 환급액 <span class="dir-badge-new">NEW</span></h2>
+              <p>카드·연금저축·월세·자녀공제 환급 예상액</p>
+            </a>
+            <a class="dir-card" href="/couple-tax/">
+              <div class="dir-top"><span class="dir-cat">맞벌이 최적화</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>맞벌이 부부 절세 <span class="dir-badge-new">NEW</span></h2>
+              <p>부양가족·의료비 최적 몰아주기 자동 탐색</p>
+            </a>
+            <a class="dir-card" href="/salary/">
+              <div class="dir-top"><span class="dir-cat">급여 · 4대보험</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>연봉 실수령액</h2>
+              <p>4대보험과 소득세를 뺀 월 실수령액</p>
+            </a>
+            <a class="dir-card" href="/severance/">
+              <div class="dir-top"><span class="dir-cat">퇴직 · 이직</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>퇴직금 계산기</h2>
+              <p>법정 퇴직금과 IRP 퇴직소득세</p>
+            </a>
+            <a class="dir-card" href="/unemployment/">
+              <div class="dir-top"><span class="dir-cat">고용보험</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>실업급여 계산기</h2>
+              <p>하루 구직급여와 총 수령액</p>
+            </a>
+            <a class="dir-card" href="/weekly-holiday/">
+              <div class="dir-top"><span class="dir-cat">단시간 근로</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>주휴수당 계산기</h2>
+              <p>2026·2027 최저시급 주휴수당과 월급</p>
+            </a>
+            <a class="dir-card" href="/eitc/">
+              <div class="dir-top"><span class="dir-cat">정부 지원금</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>근로·자녀장려금 <span class="dir-badge-new">NEW</span></h2>
+              <p>맞벌이 4,400만 확대 기준 예상 수령액</p>
+            </a>
+          </div>
+        </section>
+
+        <section class="home-cat-group" aria-label="사업 · 프리랜서 · 소득세 계산기">
+          <div class="home-cat-head">
+            <h2>사업 · 프리랜서 · 소득세</h2>
+            <span>4종</span>
+          </div>
+          <div class="directory-grid">
+            <a class="dir-card" href="/business-tax/">
+              <div class="dir-top"><span class="dir-cat">5월 종소세</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>사업소득·종합소득세 <span class="dir-badge-new">NEW</span></h2>
+              <p>단순경비율·노란우산·3.3% 환급 정산</p>
+            </a>
+            <a class="dir-card" href="/freelancer/">
+              <div class="dir-top"><span class="dir-cat">사업소득 원천징수</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>프리랜서 3.3%</h2>
+              <p>3.3% 뗀 실수령액과 세전 금액 역산</p>
+            </a>
+            <a class="dir-card" href="/vat/">
+              <div class="dir-top"><span class="dir-cat">부가세 10%</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>부가가치세(VAT) <span class="dir-badge-new">NEW</span></h2>
+              <p>공급가액 역산 및 일반·간이과세 납부세액</p>
+            </a>
+            <a class="dir-card" href="/other-income/">
+              <div class="dir-top"><span class="dir-cat">강연료 · 원고료</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>기타소득세 8.8% <span class="dir-badge-new">NEW</span></h2>
+              <p>필요경비 60% 공제 및 300만 분리과세</p>
+            </a>
+          </div>
+        </section>
+
+        <section class="home-cat-group" aria-label="부동산 · 차량 계산기">
+          <div class="home-cat-head">
+            <h2>부동산 · 차량</h2>
+            <span>5종</span>
+          </div>
+          <div class="directory-grid">
+            <a class="dir-card" href="/real-estate/">
+              <div class="dir-top"><span class="dir-cat">주택 매수</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>주택 취등록세</h2>
+              <p>다주택 중과·생애최초·출산 감면 반영</p>
+            </a>
+            <a class="dir-card" href="/transfer-tax/">
+              <div class="dir-top"><span class="dir-cat">주택 매도</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>부동산 양도소득세 <span class="dir-badge-new">NEW</span></h2>
+              <p>1주택 12억 비과세와 장특공제 80%</p>
+            </a>
+            <a class="dir-card" href="/holding-tax/">
+              <div class="dir-top"><span class="dir-cat">재산세 · 종부세</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>보유세 계산기 <span class="dir-badge-new">NEW</span></h2>
+              <p>2026 1주택 43~45% 특례와 종부세 12억 공제</p>
+            </a>
+            <a class="dir-card" href="/jeonse/">
+              <div class="dir-top"><span class="dir-cat">임대차</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>전월세 전환율</h2>
+              <p>보증금을 월세로 바꿀 때 법정 상한과 월세</p>
+            </a>
+            <a class="dir-card" href="/car-tax/">
+              <div class="dir-top"><span class="dir-cat">자동차 · 전기차</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>자동차세·취득세 <span class="dir-badge-new">NEW</span></h2>
+              <p>배기량·차령·1월 연납 5%와 전기차 감면</p>
+            </a>
+          </div>
+        </section>
+
+        <section class="home-cat-group" aria-label="투자 · 상속 · 증여 계산기">
+          <div class="home-cat-head">
+            <h2>투자 · 상속 · 증여</h2>
+            <span>4종</span>
+          </div>
+          <div class="directory-grid">
+            <a class="dir-card" href="/stock-tax/">
+              <div class="dir-top"><span class="dir-cat">해외투자</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>해외주식 양도세</h2>
+              <p>250만 원 공제 후 22% 및 RIA 감면</p>
+            </a>
+            <a class="dir-card" href="/financial-tax/">
+              <div class="dir-top"><span class="dir-cat">이자 · 배당</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>금융소득종합과세 <span class="dir-badge-new">NEW</span></h2>
+              <p>연 2,000만 원 초과 추가세액과 건보료 체크</p>
+            </a>
+            <a class="dir-card" href="/gift-tax/">
+              <div class="dir-top"><span class="dir-cat">사전 증여</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>증여세 계산기</h2>
+              <p>관계별 공제와 혼인·출산 1억 공제</p>
+            </a>
+            <a class="dir-card" href="/inheritance-tax/">
+              <div class="dir-top"><span class="dir-cat">상속 설계</span><span class="dir-arrow" aria-hidden="true">→</span></div>
+              <h2>상속세 계산기 <span class="dir-badge-new">NEW</span></h2>
+              <p>일괄 5억·배우자공제·금융재산공제 반영</p>
+            </a>
+          </div>
         </section>
 
         <aside class="tips-banner" aria-label="세금별 절세 꿀팁 안내">
           <div>
-            <span class="tips-kicker">절세 가이드 · 9종 36가지 핵심 정리</span>
+            <span class="tips-kicker">절세 가이드 · 20종 80가지 핵심 정리</span>
             <strong>${DATA.year} 세금별 절세 꿀팁 한눈에 보기</strong>
-            <p>연말정산, 프리랜서 3.3%, 해외주식 양도세, 취등록세, 증여세, 퇴직금 IRP까지 합법적으로 세금을 줄이는 핵심 체크리스트를 모았습니다.</p>
+            <p>연말정산, 맞벌이 몰아주기, 종합소득세, 해외주식·부동산 양도세, 상속·증여세, 자동차세 연납까지 합법적으로 세금을 줄이는 핵심 80가지를 모았습니다.</p>
           </div>
           <a class="tips-banner-cta" href="/tips/">절세 꿀팁 전체 보기 →</a>
         </aside>
@@ -2445,8 +2547,8 @@ function buildHomePage() {
         <section class="section-block official-links">
           <h2>신고·신청은 공식 사이트에서</h2>
           <div class="official-grid">
-            <a class="official-card" href="https://www.hometax.go.kr" target="_blank" rel="noopener noreferrer"><strong>국세청 홈택스 <span aria-hidden="true">↗</span></strong><span>연말정산, 종합소득세, 양도세, 증여세 신고</span></a>
-            <a class="official-card" href="https://www.wetax.go.kr" target="_blank" rel="noopener noreferrer"><strong>위택스 <span aria-hidden="true">↗</span></strong><span>취득세 등 지방세 신고·납부</span></a>
+            <a class="official-card" href="https://www.hometax.go.kr" target="_blank" rel="noopener noreferrer"><strong>국세청 홈택스 <span aria-hidden="true">↗</span></strong><span>연말정산, 종합소득세, 양도세, 상속·증여세 신고</span></a>
+            <a class="official-card" href="https://www.wetax.go.kr" target="_blank" rel="noopener noreferrer"><strong>위택스 <span aria-hidden="true">↗</span></strong><span>취득세·재산세·자동차세 등 지방세 신고·납부</span></a>
             <a class="official-card" href="https://www.work24.go.kr" target="_blank" rel="noopener noreferrer"><strong>고용24 <span aria-hidden="true">↗</span></strong><span>실업급여 신청·실업인정</span></a>
             <a class="official-card" href="https://www.4insure.or.kr" target="_blank" rel="noopener noreferrer"><strong>4대사회보험 정보연계센터 <span aria-hidden="true">↗</span></strong><span>4대보험료 모의계산·가입내역</span></a>
           </div>
@@ -2456,13 +2558,16 @@ function buildHomePage() {
         <section class="section-block">
           <h2>자주 찾는 구간 바로가기</h2>
           <div class="link-matrix">
-            <a class="matrix-pill" href="/salary/4000-manwon/">연봉 4,000만 원</a>
-            <a class="matrix-pill" href="/salary/5000-manwon/">연봉 5,000만 원</a>
-            <a class="matrix-pill" href="/salary/7000-manwon/">연봉 7,000만 원</a>
-            <a class="matrix-pill" href="/salary/10000-manwon/">연봉 1억 원</a>
-            <a class="matrix-pill" href="/severance/350-manwon-3-year/">월 350만 · 3년 퇴직금</a>
-            <a class="matrix-pill" href="/unemployment/350-manwon-3-year/">월 350만 · 3년 실업급여</a>
-            <a class="matrix-pill" href="/weekly-holiday/${DATA.weeklyHoliday.minimumWage2026}-won-20-hours/">2026 최저시급 주 20시간 주휴수당</a>
+            <a class="matrix-pill" href="/year-end-tax/">2026 연말정산 환급액</a>
+            <a class="matrix-pill" href="/couple-tax/">맞벌이 부부 최적 몰아주기</a>
+            <a class="matrix-pill" href="/business-tax/5000-manwon/">매출 5,000만 종합소득세</a>
+            <a class="matrix-pill" href="/salary/5000-manwon/">연봉 5,000만 원 실수령액</a>
+            <a class="matrix-pill" href="/salary/10000-manwon/">연봉 1억 원 실수령액</a>
+            <a class="matrix-pill" href="/inheritance-tax/15-eok/">상속재산 15억 상속세</a>
+            <a class="matrix-pill" href="/transfer-tax/buy-8-sell-15/">8억→15억 부동산 양도세</a>
+            <a class="matrix-pill" href="/holding-tax/15-eok/">공시가 15억 보유세</a>
+            <a class="matrix-pill" href="/car-tax/2000cc/">2,000cc 자동차세 연납</a>
+            <a class="matrix-pill" href="/car-tax/ev/">전기차 자동차세·취득세</a>
             <a class="matrix-pill" href="/weekly-holiday/2027-minimum-wage/">2027 최저임금 10,700원 비교</a>
             <a class="matrix-pill" href="/stock-tax/1000-manwon/">해외주식 1,000만 원 양도세</a>
             <a class="matrix-pill" href="/gift-tax/adult-child-1-eok/">성년 자녀 1억 증여세</a>
@@ -2476,14 +2581,25 @@ function buildHomePage() {
 
 function buildTipsPage() {
   const order = [
+    "yearEndTax",
+    "coupleTax",
     "salary",
+    "businessTax",
     "freelancer",
+    "vat",
+    "otherIncome",
     "stockTax",
+    "financialTax",
     "realEstate",
+    "transferTax",
+    "holdingTax",
     "giftTax",
+    "inheritanceTax",
     "severance",
     "unemployment",
     "weeklyHoliday",
+    "eitc",
+    "carTax",
     "jeonse"
   ];
   const categories = order
@@ -2516,7 +2632,7 @@ function buildTipsPage() {
       <section class="section-block tips-hub-group" id="${escapeHtml(cat.slug)}" aria-label="${escapeHtml(cat.title)}">
         <div class="tips-head">
           <div class="tips-head-title">
-            <span class="tips-kicker">0${idx + 1} · ${escapeHtml(cat.shortLabel)}</span>
+            <span class="tips-kicker">${String(idx + 1).padStart(2, "0")} · ${escapeHtml(cat.shortLabel)}</span>
             <h2>${escapeHtml(cat.title)}</h2>
           </div>
           <a class="tips-calc-btn" href="${escapeHtml(cat.calcHref)}">${escapeHtml(cat.calcLabel)} →</a>
@@ -2539,7 +2655,7 @@ function buildTipsPage() {
             .join("")}
         </div>
       </section>
-      ${idx === 2 || idx === 5 ? renderAdSlot("pseoMid") : ""}
+      ${idx === 3 || idx === 9 || idx === 15 ? renderAdSlot("pseoMid") : ""}
     `
     )
     .join("");
@@ -2549,7 +2665,7 @@ function buildTipsPage() {
     renderLayout({
       routePath: "/tips/",
       title: `${DATA.year} 세금별 절세 꿀팁 총정리 (${totalTips}가지 핵심 체크)`,
-      description: `${DATA.year}년 법령 기준 연봉·연말정산, 프리랜서 3.3%, 해외주식 양도세, 주택 취등록세, 증여세, 퇴직금 IRP, 실업급여, 전월세까지 세금별 절세 꿀팁 ${totalTips}가지를 한곳에 모았습니다.`,
+      description: `${DATA.year}년 법령 기준 연말정산, 맞벌이 절세, 종합소득세, 해외주식·부동산 양도세, 상속·증여세, 보유세, 부가세, 자동차세까지 세금별 절세 꿀팁 ${totalTips}가지를 한곳에 모았습니다.`,
       activeNav: "tips",
       priority: "0.9",
       breadcrumbs: [{ label: "홈", href: "/" }, { label: "절세 꿀팁 모음", href: "/tips/" }],
@@ -2575,14 +2691,25 @@ function buildTipsPage() {
 
 function buildLinksPage() {
   const groups = [
-    { key: "salary", title: "연봉·4대보험·연말정산", calc: "/salary/" },
-    { key: "freelancer", title: "프리랜서·종합소득세", calc: "/freelancer/" },
+    { key: "yearEndTax", title: "연말정산 환급액", calc: "/year-end-tax/" },
+    { key: "coupleTax", title: "맞벌이 부부 절세", calc: "/couple-tax/" },
+    { key: "salary", title: "연봉·4대보험", calc: "/salary/" },
+    { key: "businessTax", title: "사업소득·종합소득세", calc: "/business-tax/" },
+    { key: "freelancer", title: "프리랜서 3.3%", calc: "/freelancer/" },
+    { key: "vat", title: "부가가치세(VAT)", calc: "/vat/" },
+    { key: "otherIncome", title: "기타소득세(8.8%)", calc: "/other-income/" },
     { key: "severance", title: "퇴직금·퇴직연금(IRP)", calc: "/severance/" },
     { key: "unemployment", title: "실업급여(구직급여)", calc: "/unemployment/" },
-    { key: "weeklyHoliday", title: "최저임금·주휴수당·근로기준", calc: "/weekly-holiday/" },
+    { key: "weeklyHoliday", title: "최저임금·주휴수당", calc: "/weekly-holiday/" },
+    { key: "eitc", title: "근로·자녀장려금", calc: "/eitc/" },
     { key: "stockTax", title: "해외주식 양도소득세", calc: "/stock-tax/" },
-    { key: "realEstate", title: "주택 취득세·부동산", calc: "/real-estate/" },
-    { key: "giftTax", title: "증여세·상속세", calc: "/gift-tax/" },
+    { key: "financialTax", title: "금융소득종합과세", calc: "/financial-tax/" },
+    { key: "realEstate", title: "주택 취득세", calc: "/real-estate/" },
+    { key: "transferTax", title: "부동산 양도소득세", calc: "/transfer-tax/" },
+    { key: "holdingTax", title: "보유세(재산세·종부세)", calc: "/holding-tax/" },
+    { key: "giftTax", title: "증여세", calc: "/gift-tax/" },
+    { key: "inheritanceTax", title: "상속세", calc: "/inheritance-tax/" },
+    { key: "carTax", title: "자동차세·차량 취득세", calc: "/car-tax/" },
     { key: "jeonse", title: "전월세·임대차", calc: "/jeonse/" }
   ];
   const faqs = [
@@ -2756,7 +2883,7 @@ function buildTrustPages() {
     renderLayout({
       routePath: "/404.html",
       title: "페이지를 찾을 수 없습니다 (404)",
-      description: `요청하신 페이지를 찾을 수 없습니다. ${DATA.siteName} 9종 계산기 목록으로 이동해 주세요.`,
+      description: `요청하신 페이지를 찾을 수 없습니다. ${DATA.siteName} 20종 계산기 목록으로 이동해 주세요.`,
       activeNav: "",
       includeInSitemap: false,
       breadcrumbs: [{ label: "홈", href: "/" }, { label: "404", href: "/404.html" }],
@@ -2769,16 +2896,27 @@ function buildTrustPages() {
         </section>
 
         <section class="section-block">
-          <h2>전체 계산기 바로가기</h2>
+          <h2>전체 20종 계산기 바로가기</h2>
           <div class="link-matrix">
+            <a class="matrix-pill" href="/year-end-tax/">연말정산 환급액</a>
+            <a class="matrix-pill" href="/couple-tax/">맞벌이 절세</a>
             <a class="matrix-pill" href="/salary/">연봉 실수령액</a>
+            <a class="matrix-pill" href="/business-tax/">종합소득세</a>
             <a class="matrix-pill" href="/freelancer/">프리랜서 3.3%</a>
+            <a class="matrix-pill" href="/vat/">부가가치세</a>
+            <a class="matrix-pill" href="/other-income/">기타소득세 8.8%</a>
             <a class="matrix-pill" href="/severance/">퇴직금</a>
             <a class="matrix-pill" href="/unemployment/">실업급여</a>
             <a class="matrix-pill" href="/weekly-holiday/">주휴수당</a>
+            <a class="matrix-pill" href="/eitc/">근로·자녀장려금</a>
             <a class="matrix-pill" href="/stock-tax/">해외주식 양도세</a>
+            <a class="matrix-pill" href="/financial-tax/">금융소득종합과세</a>
             <a class="matrix-pill" href="/real-estate/">주택 취등록세</a>
+            <a class="matrix-pill" href="/transfer-tax/">부동산 양도세</a>
+            <a class="matrix-pill" href="/holding-tax/">보유세(재산·종부세)</a>
             <a class="matrix-pill" href="/gift-tax/">증여세</a>
+            <a class="matrix-pill" href="/inheritance-tax/">상속세</a>
+            <a class="matrix-pill" href="/car-tax/">자동차세·취득세</a>
             <a class="matrix-pill" href="/jeonse/">전월세 전환율</a>
             <a class="matrix-pill" href="/tips/">절세 꿀팁 모음</a>
           </div>
@@ -2806,13 +2944,13 @@ ${GENERATED_URLS.map(
   const pubDate = new Date(`${DATA.updatedAt}T00:00:00Z`).toUTCString();
   const rssItems = [...GENERATED_URLS]
     .sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0))
-    .slice(0, 60);
+    .slice(0, 80);
   const rssXml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>${escapeHtml(DATA.siteName)} · ${escapeHtml(DATA.siteTagline)}</title>
     <link>${escapeHtml(BASE_URL)}/</link>
-    <description>${escapeHtml(DATA.year + "년 한국 세금·금융·근로 실수령 계산기 9종 및 구간별 계산 가이드")}</description>
+    <description>${escapeHtml(DATA.year + "년 한국 세금·금융·근로 실수령 계산기 20종 및 절세 가이드")}</description>
     <language>ko</language>
     <lastBuildDate>${pubDate}</lastBuildDate>
     <atom:link href="${escapeHtml(BASE_URL)}/rss.xml" rel="self" type="application/rss+xml" />
@@ -2870,6 +3008,24 @@ function main() {
   buildUnemploymentPages();
   buildWeeklyHolidayPages();
   buildGiftTaxPages();
+  buildExtendedPages({
+    DATA,
+    Calc,
+    negWon,
+    writePage,
+    renderLayout,
+    renderAdSlot,
+    renderTaxTipsSection,
+    renderAffiliateCard,
+    renderPartnerCard,
+    renderOfficialLinks,
+    renderFaqSection,
+    renderCompareTable,
+    renderRelatedCalcs,
+    renderResultActions,
+    renderPrevNext,
+    formatKoreanManwonLabel
+  });
   buildTipsPage();
   buildLinksPage();
   buildTrustPages();

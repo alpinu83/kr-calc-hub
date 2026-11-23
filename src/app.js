@@ -296,6 +296,139 @@
     }
   }
 
+  function openShareModal({ title, summary, url, triggerBtn, filename }) {
+    let backdrop = $("semnote-share-backdrop");
+    if (backdrop) backdrop.remove();
+
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+    const encUrl = encodeURIComponent(url);
+    const encTitle = encodeURIComponent(title);
+    const encText = encodeURIComponent(summary);
+
+    backdrop = document.createElement("div");
+    backdrop.id = "semnote-share-backdrop";
+    backdrop.className = "share-backdrop";
+    backdrop.setAttribute("role", "dialog");
+    backdrop.setAttribute("aria-modal", "true");
+    backdrop.setAttribute("aria-label", "계산 결과 공유하기");
+
+    const modal = document.createElement("div");
+    modal.className = "share-modal";
+
+    const header = document.createElement("div");
+    header.className = "share-modal-head";
+    const h3 = document.createElement("h3");
+    h3.textContent = "계산 결과 공유하기";
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "share-close-btn";
+    closeBtn.setAttribute("aria-label", "닫기");
+    closeBtn.textContent = "×";
+    header.appendChild(h3);
+    header.appendChild(closeBtn);
+
+    const preview = document.createElement("div");
+    preview.className = "share-preview";
+    preview.textContent = summary;
+
+    const urlRow = document.createElement("div");
+    urlRow.className = "share-url-row";
+    const urlInput = document.createElement("input");
+    urlInput.type = "text";
+    urlInput.readOnly = true;
+    urlInput.value = url;
+    urlInput.className = "share-url-input";
+    urlInput.setAttribute("aria-label", "공유 링크");
+    const urlCopyBtn = document.createElement("button");
+    urlCopyBtn.type = "button";
+    urlCopyBtn.className = "share-url-copy";
+    urlCopyBtn.textContent = "링크 복사";
+    urlRow.appendChild(urlInput);
+    urlRow.appendChild(urlCopyBtn);
+
+    const grid = document.createElement("div");
+    grid.className = "share-btn-grid";
+
+    function addActionBtn(label, cls, onClick) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "share-opt-btn " + cls;
+      b.textContent = label;
+      b.addEventListener("click", onClick);
+      grid.appendChild(b);
+    }
+
+    function addExternalLink(label, cls, href) {
+      const a = document.createElement("a");
+      a.className = "share-opt-btn " + cls;
+      a.href = href;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = label;
+      grid.appendChild(a);
+    }
+
+    addActionBtn("요약 + 링크 복사", "opt-primary", () => {
+      copyText(summary + "\n" + url).then((ok) => {
+        showToast(ok ? "요약과 공유 링크를 복사했습니다. 카톡·메신저에 붙여넣으세요!" : "복사에 실패했습니다.");
+      });
+    });
+
+    addActionBtn("결과 이미지(PNG) 저장", "opt-img", () => {
+      downloadReceiptImage(triggerBtn, filename);
+    });
+
+    addExternalLink(
+      "네이버 블로그·카페",
+      "opt-naver",
+      "https://share.naver.com/web/shareView?url=" + encUrl + "&title=" + encTitle
+    );
+
+    addExternalLink(
+      "밴드 (BAND)",
+      "opt-band",
+      "https://band.us/plugin/share?body=" + encodeURIComponent(summary + "\n" + url) + "&route=" + encodeURIComponent(window.location.host || "korea-tax-cal.com")
+    );
+
+    addExternalLink(
+      "X (트위터)",
+      "opt-x",
+      "https://twitter.com/intent/tweet?text=" + encText + "&url=" + encUrl
+    );
+
+    if (isMobile && navigator.share) {
+      addActionBtn("앱으로 공유 (카톡 등)", "opt-native", () => {
+        navigator.share({ title, text: summary, url }).catch(() => {});
+      });
+    }
+
+    modal.appendChild(header);
+    modal.appendChild(preview);
+    modal.appendChild(urlRow);
+    modal.appendChild(grid);
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+
+    function close() {
+      backdrop.remove();
+      document.removeEventListener("keydown", onEsc);
+    }
+    function onEsc(e) {
+      if (e.key === "Escape") close();
+    }
+
+    closeBtn.addEventListener("click", close);
+    backdrop.addEventListener("click", (e) => {
+      if (e.target === backdrop) close();
+    });
+    document.addEventListener("keydown", onEsc);
+
+    urlInput.addEventListener("focus", () => urlInput.select());
+    urlCopyBtn.addEventListener("click", () => {
+      copyText(url).then((ok) => showToast(ok ? "공유 링크를 복사했습니다." : "복사에 실패했습니다."));
+    });
+  }
+
   function bindShareActions(prefix, opts) {
     const copyBtn = $("copy-" + prefix + "-btn");
     const linkBtn = $("link-" + prefix + "-btn");
@@ -333,23 +466,13 @@
 
     if (shareBtn) {
       shareBtn.addEventListener("click", () => {
-        const summary = opts.getSummary();
-        const url = getUrl();
-        const shareTitle = opts.title || document.title;
-        if (navigator.share) {
-          navigator
-            .share({ title: shareTitle, text: summary, url })
-            .catch((err) => {
-              if (err && err.name === "AbortError") return;
-              copyText(summary + "\n" + url).then((ok) =>
-                showToast(ok ? "계산 결과와 공유 링크를 복사했습니다." : "공유를 완료하지 못했습니다.")
-              );
-            });
-        } else {
-          copyText(summary + "\n" + url).then((ok) =>
-            showToast(ok ? "계산 결과와 공유 링크를 복사했습니다." : "공유를 지원하지 않는 브라우저입니다.")
-          );
-        }
+        openShareModal({
+          title: opts.title || document.title,
+          summary: opts.getSummary(),
+          url: getUrl(),
+          triggerBtn: shareBtn,
+          filename: opts.filename
+        });
       });
     }
   }
@@ -373,6 +496,22 @@
       el.addEventListener("change", update);
     });
   }
+
+  window.SemNoteUI = {
+    $,
+    num,
+    checked,
+    val,
+    negWon,
+    showToast,
+    setText,
+    setNote,
+    setBar,
+    restoreParams,
+    bindInputs,
+    bindPresets,
+    bindShareActions
+  };
 
   // 1. Salary Calculator
   function initSalary() {

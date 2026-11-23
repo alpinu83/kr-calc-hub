@@ -59,11 +59,24 @@ function verify() {
     "about/index.html",
     "privacy/index.html",
     "tips/index.html",
+    "year-end-tax/index.html",
+    "couple-tax/index.html",
+    "business-tax/index.html",
+    "inheritance-tax/index.html",
+    "transfer-tax/index.html",
+    "vat/index.html",
+    "financial-tax/index.html",
+    "car-tax/index.html",
+    "other-income/index.html",
+    "holding-tax/index.html",
+    "eitc/index.html",
     "weekly-holiday/2027-minimum-wage/index.html",
     "assets/styles.css",
     "assets/wage-tax-table-2026.js",
     "assets/calculators.js",
+    "assets/calculators-ext.js",
     "assets/app.js",
+    "assets/app-ext.js",
     "assets/favicon.svg",
     "assets/og-image.svg"
   ];
@@ -72,7 +85,7 @@ function verify() {
   }
 
   const htmlFiles = walkHtml(DIST);
-  assert(htmlFiles.length >= 175, `Expected at least 175 HTML files, found ${htmlFiles.length}`);
+  assert(htmlFiles.length >= 210, `Expected at least 210 HTML files, found ${htmlFiles.length}`);
 
   let checkedLinks = 0;
   for (const file of htmlFiles) {

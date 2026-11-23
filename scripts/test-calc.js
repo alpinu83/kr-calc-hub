@@ -108,7 +108,101 @@ function runTests() {
   eq(Calc.calcGiftTax(100000000, "adultGrandchild").finalTax, 6305000, "세대생략 30% 할증");
   eq(Calc.calcGiftTax(200000000, "adultChild", null, { priorTax: 5000000 }).finalTax, 14550000, "기납부세액공제");
 
-  console.log("All 9 calculator unit tests passed! (statute-verified expectations)");
+  require("../src/calculators-ext");
+
+  // 10. 연말정산 환급액
+  const ye = Calc.calcYearEndTax({
+    gross: 50000000,
+    dependents: 1,
+    children: 0,
+    creditCard: 10000000,
+    debitCash: 8000000,
+    pensionIrp: 6000000,
+    monthlyRentAnnual: 6000000
+  });
+  eq(ye.pensionCredit, 900000, "연금저축 600만 × 15% (총급여 5,500만 이하)");
+  eq(ye.rentCredit, 1020000, "월세 600만 × 17% (총급여 5,500만 이하)");
+  assert(ye.cardDeduction > 0, "카드 소득공제 발생");
+  assert(ye.refundAmount > 0, "공제 반영 시 환급 발생");
+  eq(Calc.calcYearEndTax({ gross: 60000000, dependents: 3, children: 2 }).childTaxCredit, 550000, "2026 자녀 2명 55만");
+
+  // 11. 맞벌이 절세
+  const cp = Calc.calcCoupleTax({
+    husbandGross: 80000000,
+    wifeGross: 40000000,
+    children: 1,
+    otherDeps: 1,
+    sharedMedical: 3000000,
+    sharedEducation: 2000000,
+    sharedCard: 15000000
+  });
+  assert(cp.best.totalTax <= cp.allHusband.totalTax && cp.best.totalTax <= cp.allWife.totalTax, "최적 배분이 몰아주기보다 작거나 같음");
+  assert(cp.maxSavings > 0, "맞벌이 배분에 따른 절세 효과 존재");
+
+  // 12. 사업소득금액 · 종합소득세
+  const biz = Calc.calcBusinessIncomeTax({
+    revenue: 50000000,
+    expenseMode: "simple",
+    expenseRate: 64.1,
+    dependents: 1,
+    yellowUmbrella: 6000000,
+    autoPrepaid33: true
+  });
+  eq(biz.businessIncome, 17950000, "매출 5천만 × (1-64.1%)");
+  eq(biz.yellowLimit, 6000000, "2026 사업소득 4천만 이하 노란우산 600만 한도");
+  eq(biz.prepaidTax, 1650000, "3.3% 기납부");
+
+  // 13. 상속세
+  eq(Calc.calcInheritanceTax({ grossEstate: 1000000000, hasSpouse: true, children: 2 }).finalTax, 0, "배우자 생존 10억 비과세");
+  const inh15 = Calc.calcInheritanceTax({ grossEstate: 1500000000, hasSpouse: true, children: 2, voluntary: true });
+  assert(inh15.finalTax > 0 && inh15.spouseDeduction === 500000000, "15억 상속세 산출");
+  eq(Calc.calcInheritanceTax({ grossEstate: 2000000000, hasSpouse: false, children: 2, netFinancial: 1000000000 }).financialDeduction, 200000000, "금융재산공제 최대 2억");
+
+  // 14. 부동산 양도소득세
+  eq(Calc.calcPropertyTransferTax({ buyPrice: 600000000, sellPrice: 1200000000, holdYears: 3, resideYears: 2, isOneHome: true }).totalTax, 0, "1주택 12억 비과세");
+  const tr15 = Calc.calcPropertyTransferTax({ buyPrice: 800000000, sellPrice: 1500000000, expenses: 20000000, holdYears: 10, resideYears: 10, isOneHome: true });
+  eq(tr15.ltDeductionRate, 0.8, "1주택 10년 보유·거주 장특공제 80%");
+  assert(tr15.totalTax > 0, "12억 초과분 과세");
+
+  // 15. 부가가치세(VAT)
+  const vatSimple = Calc.calcVat({ mode: "simple", amount: 11000000, isInclusive: true });
+  eq(vatSimple.supply, 10000000, "부가세 포함 역산 공급가액");
+  eq(vatSimple.vat, 1000000, "부가세 포함 역산 VAT");
+  eq(Calc.calcVat({ mode: "simplified", sales: 40000000, vatValueRate: 0.3 }).payableVat, 0, "간이과세 4,800만 미만 납부면제");
+
+  // 16. 금융소득종합과세
+  eq(Calc.calcFinancialTax({ interest: 10000000, dividend: 10000000, otherIncome: 50000000 }).additionalTotal, 0, "2,000만 이하 추가세액 0원");
+  const finHigh = Calc.calcFinancialTax({ interest: 15000000, dividend: 25000000, otherIncome: 60000000 });
+  eq(finHigh.isComprehensive, true, "2,000만 초과 종합과세");
+  assert(finHigh.additionalTotal > 0, "2,000만 초과 추가세액 발생");
+
+  // 17. 자동차세 · 자동차 취득세
+  const ev = Calc.calcCarTax({ carType: "ev", carAge: 1, prepayMonth: 0, carPrice: 50000000 });
+  eq(ev.annualCarTax, 130000, "전기차 자동차세 연 13만 원");
+  eq(ev.acqRelief, 1400000, "2026 전기차 취득세 감면 140만 원");
+  const car2000 = Calc.calcCarTax({ carType: "passenger", cc: 2000, carAge: 1, prepayMonth: 1, carPrice: 40000000 });
+  eq(car2000.annualCarTax, 520000, "2,000cc 신차 자동차세 52만 원");
+  assert(car2000.prepayDiscount > 23000 && car2000.prepayDiscount < 24500, "2026 1월 연납 4.58% 할인");
+
+  // 18. 기타소득세(8.8%)
+  eq(Calc.calcOtherIncomeTax({ gross: 1000000, expenseRatePct: 60 }).totalTax, 88000, "100만 원 강연료 8.8%");
+  eq(Calc.calcOtherIncomeTax({ gross: 125000, expenseRatePct: 60 }).totalTax, 0, "과세최저한 5만 원 이하 비과세");
+
+  // 19. 보유세(재산세 · 종부세)
+  const hold10 = Calc.calcHoldingTax({ officialPrice: 1000000000, isOneHome: true });
+  eq(hold10.totalJongbuTax, 0, "1주택 공시가 12억 이하 종부세 0원");
+  eq(hold10.propRatio, 0.45, "2026 1주택 6억 초과 재산세 공정시장가액비율 45%");
+  const hold20 = Calc.calcHoldingTax({ officialPrice: 2000000000, isOneHome: true, ownerAge: 70, holdYears: 15 });
+  eq(hold20.creditRate, 0.8, "고령자+장기보유 최대 80% 공제");
+  assert(hold20.totalJongbuTax > 0, "공시가 20억 종부세 발생");
+
+  // 20. 근로장려금 · 자녀장려금
+  eq(Calc.calcEitc({ household: "single", income: 6000000, assets: 100000000 }).eitc, 1650000, "단독 최대 165만 원");
+  eq(Calc.calcEitc({ household: "dualEarner", income: 12000000, children: 2, assets: 100000000 }).totalBenefit, 5300000, "맞벌이 330만 + 자녀 2명 200만");
+  eq(Calc.calcEitc({ household: "dualEarner", income: 40000000, children: 0, assets: 100000000 }).eitc > 0, true, "2026 맞벌이 4,400만 미만 수급");
+  eq(Calc.calcEitc({ household: "single", income: 6000000, assets: 250000000 }).totalBenefit, 0, "재산 2.4억 이상 제외");
+
+  console.log("All 20 calculator unit tests passed! (statute-verified 2026 expectations)");
 }
 
 runTests();
