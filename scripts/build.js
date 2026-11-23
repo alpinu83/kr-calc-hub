@@ -239,9 +239,6 @@ function renderLayout({
       ? `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${escapeHtml(DATA.monetization.adsensePublisherId)}" crossorigin="anonymous"></script>`
       : "";
   const ogImageUrl = `${BASE_URL}/assets/og-image.svg`;
-  const repoLinkHtml = DATA.repoUrl
-    ? `<a href="${escapeHtml(DATA.repoUrl)}" target="_blank" rel="noopener noreferrer">GitHub</a>`
-    : "";
 
   return `<!DOCTYPE html>
 <html lang="ko">
@@ -310,8 +307,6 @@ function renderLayout({
       <nav class="footer-links" aria-label="사이트 안내">
         <a href="/about/">사이트 소개 · 면책고지</a>
         <a href="/privacy/">개인정보처리방침</a>
-        <a href="/sitemap.xml">사이트맵</a>
-        ${repoLinkHtml}
       </nav>
     </div>
   </footer>
