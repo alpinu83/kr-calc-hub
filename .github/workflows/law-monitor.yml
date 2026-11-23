@@ -2,7 +2,7 @@ name: Monitor Korean Tax & Labor Law Updates
 
 on:
   schedule:
-    # 매월 2일 법제처 Open API로 핵심 법령 개정 여부 점검
+    # 매월 2일 10:00 KST 법제처 Open API로 세법·4대보험·노동법 개정(현행+시행예정) 점검
     - cron: "0 1 2 * *"
   workflow_dispatch:
 
@@ -37,14 +37,13 @@ jobs:
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `[법령 개정 감지] 셈노트 세율·요율 점검 필요 (${new Date().toISOString().slice(0, 10)})`,
+              title: `[법령 개정 감지] 세금계산기 세율·요율 점검 필요 (${new Date().toISOString().slice(0, 10)})`,
               body
             });
 
-      - name: Save updated law versions baseline
-        if: hashFiles('law-diff.md') != ''
+      - name: Save law versions baseline
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/law-versions.json
-          git diff --cached --quiet || (git commit -m "chore: update tracked Korean law versions baseline" && git push)
+          git diff --cached --quiet || (git commit -m "chore: update tracked Korean law versions baseline [skip ci]" && git push)
