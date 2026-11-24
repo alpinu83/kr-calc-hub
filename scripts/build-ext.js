@@ -145,6 +145,22 @@ module.exports = function buildExtendedPages(ctx) {
     ]);
 
     const grossPresets = [3000, 3500, 4000, 4500, 5000, 6000, 7000, 8000, 9000, 10000];
+    const topicPages = [
+      { slug: "checklist", label: "12월 막판 절세 체크리스트" },
+      { slug: "card-deduction", label: "신용·체크카드 25% 황금비율" },
+      { slug: "pension-irp", label: "연금저축·IRP 최대 환급액" },
+      { slug: "monthly-rent", label: "월세 세액공제 (최대 170만)" },
+      { slug: "child-credit", label: "2026 자녀세액공제 (25·55만)" },
+      { slug: "medical-deduction", label: "의료비 세액공제 (3% 초과)" }
+    ];
+    const topicMatrixLinks = (current) => `
+      <section class="section-block">
+        <h2>공제 항목별 연말정산 핵심 가이드</h2>
+        <div class="link-matrix">
+          ${topicPages.map((t) => `<a class="matrix-pill ${current === t.slug ? "current" : ""}" href="/year-end-tax/${t.slug}/">${t.label}</a>`).join("")}
+        </div>
+      </section>
+    `;
     const matrixLinks = (current) => `
       <section class="section-block">
         <h2>연봉별 연말정산 예상 환급액 바로가기</h2>
@@ -174,6 +190,7 @@ module.exports = function buildExtendedPages(ctx) {
           </header>
           ${renderWidget(5000)}
           ${renderAdSlot("calcMid")}
+          ${topicMatrixLinks(null)}
           ${renderTaxTipsSection("yearEndTax")}
           ${renderAffiliateCard("yearEndTax")}
           ${renderOfficialLinks("yearEndTax")}
@@ -183,6 +200,235 @@ module.exports = function buildExtendedPages(ctx) {
         `
       })
     );
+
+    const fmtRefVal = (r) => (r.refundAmount >= 0 ? "환급 +" : "추가납부 -") + Calc.formatWon(Math.abs(r.refundAmount));
+
+    /* 연말정산 공제 항목별 시즌 롱테일 6종 */
+    const base5000 = Calc.calcYearEndTax({ gross: 50000000, dependents: 1 });
+    const cardOnly = Calc.calcYearEndTax({ gross: 50000000, dependents: 1, creditCard: 20000000, debitCash: 0 });
+    const cardMix = Calc.calcYearEndTax({ gross: 50000000, dependents: 1, creditCard: 12500000, debitCash: 7500000 });
+    const cardChild = Calc.calcYearEndTax({ gross: 50000000, dependents: 3, children: 2, creditCard: 12500000, debitCash: 12500000 });
+    const pen600_50 = Calc.calcYearEndTax({ gross: 50000000, dependents: 1, pensionIrp: 6000000 });
+    const pen900_50 = Calc.calcYearEndTax({ gross: 50000000, dependents: 1, pensionIrp: 9000000 });
+    const pen900_70 = Calc.calcYearEndTax({ gross: 70000000, dependents: 1, pensionIrp: 9000000 });
+    const rent50 = Calc.calcYearEndTax({ gross: 50000000, dependents: 1, monthlyRentAnnual: 7200000 });
+    const rent50Max = Calc.calcYearEndTax({ gross: 50000000, dependents: 1, monthlyRentAnnual: 10000000 });
+    const rent70 = Calc.calcYearEndTax({ gross: 70000000, dependents: 1, monthlyRentAnnual: 10000000 });
+    const child1 = Calc.calcYearEndTax({ gross: 60000000, dependents: 2, children: 1 });
+    const child2 = Calc.calcYearEndTax({ gross: 60000000, dependents: 3, children: 2 });
+    const child3 = Calc.calcYearEndTax({ gross: 60000000, dependents: 4, children: 3 });
+    const medBase = Calc.calcYearEndTax({ gross: 50000000, dependents: 1 });
+    const med300 = Calc.calcYearEndTax({ gross: 50000000, dependents: 1, medical: 3000000 });
+    const med500 = Calc.calcYearEndTax({ gross: 50000000, dependents: 1, medical: 5000000 });
+    const med800 = Calc.calcYearEndTax({ gross: 50000000, dependents: 1, medical: 8000000 });
+
+    const topicSpecs = [
+      {
+        slug: "checklist",
+        title: "2026 연말정산 12월 막판 절세 체크리스트 (공제별 최대 환급액)",
+        description: "12월 31일 전 연금저축·IRP, 체크카드 25% 전환, 월세·고향사랑기부금 등 연말정산 환급액을 늘리는 5가지 막판 전략과 연봉 5,000만 기준 실제 절세액을 비교합니다.",
+        h1: "2026 연말정산 12월 막판 절세 체크리스트",
+        sub: "12월 31일 자정까지 실행하면 바로 환급액이 늘어나는 핵심 공제 5가지와 연봉 5,000만 원 기준 실제 절세 효과입니다.",
+        defGross: 5000,
+        table: renderCompareTable({
+          title: "연봉 5,000만 원 기준 막판 공제별 추가 절세 효과",
+          subtitle: "기본 공제(4대보험·인적공제) 대비 각 항목을 추가했을 때의 결정세액 감소액(지방소득세 포함)입니다.",
+          headers: [
+            { label: "12월 31일 전 실행 항목" },
+            { label: "공제 조건·한도" },
+            { label: "결정세액 절감", num: true },
+            { label: "예상 정산 결과", num: true }
+          ],
+          rows: [
+            { current: false, cells: ["기본 공제만 적용", "4대보험·본인 인적공제", "기준", fmtRefVal(base5000)] },
+            { current: false, cells: ["신용 1,250만 + 체크 750만", "총급여 25% 초과분 30% 공제", Calc.formatWon(base5000.determinedTotalTax - cardMix.determinedTotalTax), fmtRefVal(cardMix)] },
+            { current: true, cells: ["연금저축·IRP 900만 납입", "총급여 5,500만 이하 16.5%", Calc.formatWon(base5000.determinedTotalTax - pen900_50.determinedTotalTax), fmtRefVal(pen900_50)] },
+            { current: false, cells: ["월세 세액공제 연 1,000만", "총급여 5,500만 이하 17% (지방세 포함 18.7%)", Calc.formatWon(base5000.determinedTotalTax - rent50Max.determinedTotalTax), fmtRefVal(rent50Max)] },
+            { current: false, cells: ["의료비 500만 원 지출", "총급여 3% 초과분 15% (지방세 포함 16.5%)", Calc.formatWon(base5000.determinedTotalTax - med500.determinedTotalTax), fmtRefVal(med500)] }
+          ]
+        }),
+        faqs: [
+          { q: "12월 31일에 연금저축·IRP에 입금해도 공제되나요?", a: "네, 12월 31일 금융사 마감 시간 전까지 입금이 완료되면 해당 연도 세액공제 대상에 포함됩니다. 다만 연말 영업시간(보통 오후 11시 전후)에 주의하세요." },
+          { q: "고향사랑기부금 10만 원은 얼마나 돌려받나요?", a: "10만 원 이하 기부금은 전액(100%, 지방소득세 포함 10만 원) 세액공제되며, 최대 3만 원 상당의 답례품까지 받을 수 있어 결정세액이 남아 있다면 사실상 13만 원 효과가 납니다." }
+        ]
+      },
+      {
+        slug: "card-deduction",
+        title: "2026 연말정산 신용카드·체크카드 25% 황금비율 및 자녀 추가한도",
+        description: "총급여 25%까지는 신용카드, 초과분은 체크카드·현금영수증(30%)으로 쓰는 황금비율과 2026년 자녀 수별 카드 추가 공제한도(최대 400만 원)를 계산합니다.",
+        h1: "2026 신용·체크카드 소득공제 25% 황금비율",
+        sub: "총급여의 25%까지는 혜택 좋은 신용카드, 25% 초과분은 공제율 2배(30%)인 체크카드·현금영수증을 쓰는 것이 가장 유리합니다.",
+        defGross: 5000,
+        table: renderCompareTable({
+          title: "연봉 5,000만 원 (25% 문턱 = 1,250만 원) 카드 조합별 비교",
+          subtitle: "2026년부터 자녀 1인당 카드 공제한도가 총급여 7,000만 이하 +50만(최대 +100만 → 400만), 초과 +25만(최대 +50만 → 300만) 확대되었습니다.",
+          headers: [
+            { label: "카드 사용 조합" },
+            { label: "카드 소득공제액", num: true },
+            { label: "결정세액 합계", num: true },
+            { label: "예상 정산 결과", num: true }
+          ],
+          rows: [
+            { current: false, cells: ["신용카드만 2,000만 원", Calc.formatWon(cardOnly.cardDeduction), Calc.formatWon(cardOnly.determinedTotalTax), fmtRefVal(cardOnly)] },
+            { current: true, cells: ["신용 1,250만 + 체크 750만 (황금비율)", Calc.formatWon(cardMix.cardDeduction), Calc.formatWon(cardMix.determinedTotalTax), fmtRefVal(cardMix)] },
+            { current: false, cells: ["자녀 2명 + 신용 1,250만 + 체크 1,250만", Calc.formatWon(cardChild.cardDeduction), Calc.formatWon(cardChild.determinedTotalTax), fmtRefVal(cardChild)] }
+          ]
+        }),
+        faqs: [
+          { q: "2026년 신용카드 공제한도가 자녀가 있으면 얼마나 늘어나나요?", a: "총급여 7,000만 원 이하는 기본 300만 원에 자녀 1명당 50만 원(최대 100만 원)이 더해져 최대 400만 원, 7,000만 원 초과는 기본 250만 원에 자녀 1명당 25만 원(최대 50만 원)이 더해져 최대 300만 원까지 공제됩니다." },
+          { q: "맞벌이 부부는 카드를 누구 명의로 몰아쓰는 게 좋나요?", a: "총급여 25% 문턱을 넘어야 공제가 시작되므로, 연봉 차이가 크지 않다면 총급여가 낮은 배우자 카드로 25%를 먼저 넘기는 쪽이 유리한 경우가 많습니다." }
+        ]
+      },
+      {
+        slug: "pension-irp",
+        title: "2026 연금저축·IRP 세액공제 계산기 (600만·900만 최대 환급액)",
+        description: "연금저축 600만 원·IRP 합산 900만 원 납입 시 총급여 5,500만 이하 16.5%(최대 148.5만 원), 초과 13.2%(최대 118.8만 원) 환급 효과를 계산합니다.",
+        h1: "2026 연금저축 · IRP 세액공제 환급액",
+        sub: "연금저축 단독 연 600만 원, IRP 합산 최대 연 900만 원까지 세액공제되어 총급여 5,500만 원 이하는 최대 148만 5,000원(지방세 포함)을 돌려받습니다.",
+        defGross: 5000,
+        table: renderCompareTable({
+          title: "총급여 · 납입액별 연금저축·IRP 환급 효과 비교",
+          subtitle: "공제율은 총급여 5,500만 원(종합소득 4,500만 원) 이하 15%(지방세 포함 16.5%), 초과 12%(지방세 포함 13.2%)입니다.",
+          headers: [
+            { label: "구간 · 납입액" },
+            { label: "공제율 (지방세 포함)", num: true },
+            { label: "연금 세액공제(국세)", num: true },
+            { label: "예상 정산 결과", num: true }
+          ],
+          rows: [
+            { current: false, cells: ["연봉 5,000만 · 연금저축 600만", "16.5%", Calc.formatWon(pen600_50.pensionCredit), fmtRefVal(pen600_50)] },
+            { current: true, cells: ["연봉 5,000만 · 연금+IRP 900만", "16.5%", Calc.formatWon(pen900_50.pensionCredit), fmtRefVal(pen900_50)] },
+            { current: false, cells: ["연봉 7,000만 · 연금+IRP 900만", "13.2%", Calc.formatWon(pen900_70.pensionCredit), fmtRefVal(pen900_70)] }
+          ]
+        }),
+        faqs: [
+          { q: "결정세액이 0원이면 연금저축을 넣어도 환급받지 못하나요?", a: "네, 세액공제는 납부할 세금을 깎아주는 방식이므로 이미 결정세액이 0원이라면 추가 환급이 발생하지 않습니다. 먼저 위 계산기에서 결정세액이 남아 있는지 확인하세요." },
+          { q: "중도 해지하면 불이익이 있나요?", a: "세액공제 받은 원금과 운용수익을 만 55세 이전 연금 외 수령(중도해지)하면 16.5% 기타소득세가 부과되므로 여유 자금 범위에서 납입하는 것이 안전합니다." }
+        ]
+      },
+      {
+        slug: "monthly-rent",
+        title: "2026 월세 세액공제 계산기 (총급여 8,000만·한도 1,000만·최대 170만)",
+        description: "무주택 세대주 직장인의 2026년 월세 세액공제(총급여 5,500만 이하 17%·8,000만 이하 15%, 연 1,000만 원 한도) 환급액을 바로 계산합니다.",
+        h1: "2026 월세 세액공제 환급액 계산",
+        sub: "총급여 8,000만 원 이하 무주택 근로자는 연간 월세 최대 1,000만 원에 대해 15~17%(지방세 포함 16.5~18.7%)를 세액공제 받습니다.",
+        defGross: 5000,
+        table: renderCompareTable({
+          title: "총급여 · 연간 월세별 세액공제 환급액 비교",
+          subtitle: "전입신고 완료 + 국민주택규모(85㎡) 이하 또는 기준시가 4억 원 이하 주택(주거용 오피스텔·고시원 포함) 요건을 충족해야 합니다.",
+          headers: [
+            { label: "구간 · 연간 월세" },
+            { label: "세액공제율 (국세)", num: true },
+            { label: "월세 세액공제(국세)", num: true },
+            { label: "예상 정산 결과", num: true }
+          ],
+          rows: [
+            { current: false, cells: ["연봉 5,000만 · 월 60만 (연 720만)", "17%", Calc.formatWon(rent50.rentCredit), fmtRefVal(rent50)] },
+            { current: true, cells: ["연봉 5,000만 · 월 84만+ (한도 1,000만)", "17%", Calc.formatWon(rent50Max.rentCredit), fmtRefVal(rent50Max)] },
+            { current: false, cells: ["연봉 7,000만 · 월 84만+ (한도 1,000만)", "15%", Calc.formatWon(rent70.rentCredit), fmtRefVal(rent70)] }
+          ]
+        }),
+        faqs: [
+          { q: "집주인 동의 없이도 월세 세액공제를 신청할 수 있나요?", a: "네, 임대인 동의는 필요 없습니다. 주민등록등본, 임대차계약서 사본, 계좌이체 영수증(이체확인증)을 제출하면 공제받을 수 있으며, 놓친 월세도 5년 이내 경정청구로 돌려받을 수 있습니다." },
+          { q: "월세 세액공제와 현금영수증 소득공제를 중복으로 받을 수 있나요?", a: "중복 적용은 불가합니다. 다만 총급여 8,000만 원을 초과해 월세 세액공제 대상이 안 된다면 홈택스에서 월세 현금영수증을 발급받아 신용카드 등 소득공제로 처리하는 것이 유리합니다." }
+        ]
+      },
+      {
+        slug: "child-credit",
+        title: "2026 자녀세액공제 계산기 (첫째 25만·둘째 30만·셋째 40만)",
+        description: "2026년 귀속 자녀세액공제(1명 25만, 2명 55만, 3명 95만 원) 금액과 9세 이상(2016년 이전 출생) 적용 나이 기준, 출산·입양 공제를 정리했습니다.",
+        h1: "2026 자녀세액공제 환급액 계산",
+        sub: "자녀 1명 25만 원, 2명 55만 원, 3명 이상은 2명 초과 1명당 40만 원이 추가 공제됩니다(기본공제 대상 9세 이상 자녀 기준).",
+        defGross: 6000,
+        table: renderCompareTable({
+          title: "연봉 6,000만 원 기준 자녀 수별 세액공제 비교",
+          subtitle: "자녀 기본공제(1인당 연 150만 원 소득공제)와 자녀세액공제가 함께 적용되어 결정세액이 크게 줄어듭니다.",
+          headers: [
+            { label: "자녀 수 (9~20세)" },
+            { label: "자녀세액공제(국세)", num: true },
+            { label: "결정세액 합계", num: true },
+            { label: "예상 정산 결과", num: true }
+          ],
+          rows: [
+            { current: false, cells: ["자녀 1명 (부양가족 2명)", Calc.formatWon(child1.childCredit), Calc.formatWon(child1.determinedTotalTax), fmtRefVal(child1)] },
+            { current: true, cells: ["자녀 2명 (부양가족 3명)", Calc.formatWon(child2.childCredit), Calc.formatWon(child2.determinedTotalTax), fmtRefVal(child2)] },
+            { current: false, cells: ["자녀 3명 (부양가족 4명)", Calc.formatWon(child3.childCredit), Calc.formatWon(child3.determinedTotalTax), fmtRefVal(child3)] }
+          ]
+        }),
+        faqs: [
+          { q: "2026년 귀속 자녀세액공제는 몇 살부터 받을 수 있나요?", a: "아동수당 지급 연령이 만 8세까지 확대됨에 따라, 2026년 귀속부터는 만 9세 이상(2016년 12월 31일 이전 출생, 2017년생은 아동수당 중복 방지로 제외) 기본공제 대상 자녀·손자녀에게 적용됩니다." },
+          { q: "자녀장려금과 자녀세액공제를 동시에 받을 수 있나요?", a: "아니요, 조세특례제한법에 따라 자녀장려금과 자녀세액공제는 중복 적용되지 않으며, 자녀장려금 지급 시 이미 받은 자녀세액공제액만큼 차감됩니다." }
+        ]
+      },
+      {
+        slug: "medical-deduction",
+        title: "2026 의료비 세액공제 계산기 (총급여 3% 초과 15%·맞벌이 전략)",
+        description: "총급여 3% 초과 지출액의 15%(지방세 포함 16.5%)를 돌려받는 의료비 세액공제 계산과 맞벌이 부부의 저소득 배우자 몰아주기 전략을 확인하세요.",
+        h1: "2026 의료비 세액공제 계산 및 절세 전략",
+        sub: "의료비는 총급여의 3%를 초과한 금액부터 15%(지방세 포함 16.5%)가 공제되며, 본인·6세 이하·65세 이상·난임 의료비는 700만 원 한도 없이 전액 공제됩니다.",
+        defGross: 5000,
+        table: renderCompareTable({
+          title: "연봉 5,000만 원 (3% 문턱 = 150만 원) 의료비 지출별 절세 효과",
+          subtitle: "실손의료보험에서 보전받은 금액은 공제 대상 의료비에서 반드시 차감해야 합니다.",
+          headers: [
+            { label: "연간 의료비 (실손 차감 후)" },
+            { label: "3% 초과 공제대상", num: true },
+            { label: "결정세액 합계", num: true },
+            { label: "예상 정산 결과", num: true }
+          ],
+          rows: [
+            { current: false, cells: ["의료비 150만 원 이하", "0원", Calc.formatWon(medBase.determinedTotalTax), fmtRefVal(medBase)] },
+            { current: false, cells: ["의료비 300만 원", "150만 원", Calc.formatWon(med300.determinedTotalTax), fmtRefVal(med300)] },
+            { current: true, cells: ["의료비 500만 원", "350만 원", Calc.formatWon(med500.determinedTotalTax), fmtRefVal(med500)] },
+            { current: false, cells: ["의료비 800만 원", "650만 원", Calc.formatWon(med800.determinedTotalTax), fmtRefVal(med800)] }
+          ]
+        }),
+        faqs: [
+          { q: "맞벌이 부부는 의료비를 누구 쪽으로 몰아주는 게 유리한가요?", a: "총급여 3% 문턱을 넘겨야 공제가 시작되므로, 일반적으로 총급여가 낮은 배우자가 결제해 공제받는 편이 유리합니다. 단, 결정세액이 0원이 되지 않는 범위에서 배분해야 합니다." },
+          { q: "부양가족 공제를 안 받은 배우자나 부모님 의료비도 공제되나요?", a: "의료비는 나이·소득 제한이 없어 기본공제를 받지 못하는(소득 100만 원 초과) 배우자나 부양가족을 위해 본인이 직접 지출한 의료비도 공제받을 수 있습니다. 단, 다른 배우자가 기본공제를 받은 부양가족의 의료비를 본인이 중복 공제할 수는 없습니다." }
+        ]
+      }
+    ];
+
+    topicSpecs.forEach((tp, idx) => {
+      const prev = idx > 0 ? { href: `/year-end-tax/${topicSpecs[idx - 1].slug}/`, label: topicPages[idx - 1].label } : null;
+      const next = idx < topicSpecs.length - 1 ? { href: `/year-end-tax/${topicSpecs[idx + 1].slug}/`, label: topicPages[idx + 1].label } : null;
+      writePage(
+        `/year-end-tax/${tp.slug}/`,
+        renderLayout({
+          routePath: `/year-end-tax/${tp.slug}/`,
+          title: tp.title,
+          description: tp.description,
+          activeNav: "year-end-tax",
+          priority: "0.8",
+          breadcrumbs: [
+            { label: "홈", href: "/" },
+            { label: "연말정산 계산기", href: "/year-end-tax/" },
+            { label: topicPages[idx].label, href: `/year-end-tax/${tp.slug}/` }
+          ],
+          faqs: tp.faqs,
+          bodyHtml: `
+            <header class="page-head">
+              <div class="page-head-row">
+                <h1>${tp.h1}</h1>
+                <span class="meta-tag">2026 귀속 기준</span>
+              </div>
+              <p class="subtitle">${tp.sub}</p>
+            </header>
+            ${renderWidget(tp.defGross)}
+            ${renderAdSlot("pseoMid")}
+            ${tp.table}
+            ${topicMatrixLinks(tp.slug)}
+            ${renderTaxTipsSection("yearEndTax")}
+            ${renderOfficialLinks("yearEndTax")}
+            ${related}
+            ${renderPrevNext(prev, next)}
+            ${renderFaqSection(tp.faqs)}
+            ${matrixLinks(null)}
+          `
+        })
+      );
+    });
 
     grossPresets.forEach((m, idx) => {
       const label = formatKoreanManwonLabel(m);
@@ -231,6 +477,7 @@ module.exports = function buildExtendedPages(ctx) {
             ${renderWidget(m)}
             ${renderAdSlot("pseoMid")}
             ${cmp}
+            ${topicMatrixLinks(null)}
             ${renderTaxTipsSection("yearEndTax")}
             ${renderAffiliateCard("yearEndTax")}
             ${renderOfficialLinks("yearEndTax")}
@@ -1423,11 +1670,16 @@ module.exports = function buildExtendedPages(ctx) {
   /* 17. 자동차세 & 자동차 취득세 계산기 */
   function buildCarTaxPages() {
     const carPresets = [
-      { slug: "1000cc", label: "경차 1,000cc", type: "compact", cc: 998, price: 1800 },
-      { slug: "1600cc", label: "준중형 1,600cc", type: "passenger", cc: 1598, price: 2800 },
-      { slug: "2000cc", label: "중형 2,000cc", type: "passenger", cc: 1998, price: 3800 },
-      { slug: "2500cc", label: "준대형 2,500cc", type: "passenger", cc: 2497, price: 4800 },
-      { slug: "ev", label: "전기차 (EV)", type: "ev", cc: 0, price: 5000 }
+      { slug: "1000cc", label: "경차 1,000cc", examples: "모닝 · 레이 · 캐스퍼", type: "compact", cc: 998, price: 1800 },
+      { slug: "1500cc", label: "소형 SUV 1,500cc", examples: "셀토스 · 트랙스 · 코나", type: "passenger", cc: 1498, price: 2600 },
+      { slug: "1600cc", label: "준중형·HEV 1,600cc", examples: "아반떼 · 스포티지 · 쏘렌토 HEV", type: "passenger", cc: 1598, price: 3200 },
+      { slug: "2000cc", label: "중형 2,000cc", examples: "쏘나타 · K5 · 투싼", type: "passenger", cc: 1998, price: 3800 },
+      { slug: "2200cc", label: "디젤·RV 2,200cc", examples: "카니발 · 싼타페 · 팰리세이드 디젤", type: "passenger", cc: 2199, price: 4500 },
+      { slug: "2500cc", label: "준대형 2,500cc", examples: "그랜저 · K8 · GV70", type: "passenger", cc: 2497, price: 4800 },
+      { slug: "3000cc", label: "대형 3,000cc", examples: "GV80 · G80 · 모하비", type: "passenger", cc: 2996, price: 6500 },
+      { slug: "3500cc", label: "프리미엄 3,500cc", examples: "카니발 3.5 · 그랜저 3.5 · G90", type: "passenger", cc: 3470, price: 7000 },
+      { slug: "ev", label: "전기차 (EV)", examples: "아이오닉 · EV6 · 테슬라 모델Y", type: "ev", cc: 0, price: 5000 },
+      { slug: "van-11", label: "11인승 승합차", examples: "스타리아 · 카니발 11인승", type: "van11", cc: 0, price: 4200 }
     ];
 
     function renderWidget(defType, defCc, defPrice) {
@@ -1439,7 +1691,7 @@ module.exports = function buildExtendedPages(ctx) {
             <div class="field">
               <label for="car-type">차량 구분</label>
               <select id="car-type">
-                <option value="passenger" ${defType === "passenger" ? "selected" : ""}>비영업용 승용차 (세단·SUV·7~9인승 포함)</option>
+                <option value="passenger" ${defType === "passenger" ? "selected" : ""}>비영업용 승용차 (세단·SUV·하이브리드·7~9인승)</option>
                 <option value="compact" ${defType === "compact" ? "selected" : ""}>경차 (1,000cc 이하 · 취득세 4% 75만 감면)</option>
                 <option value="ev" ${defType === "ev" ? "selected" : ""}>전기차 (자동차세 연 13만 · 취득세 140만 감면)</option>
                 <option value="van11" ${defType === "van11" ? "selected" : ""}>11인승 이상 승합차 (연 65,000원 · 교육세 면제 · 취득세 5%)</option>
@@ -1490,7 +1742,7 @@ module.exports = function buildExtendedPages(ctx) {
             <table class="breakdown-table">
               <tbody>
                 <tr><th>자동차세 본세</th><td id="res-car-base">${Calc.formatWon(res.discountedBase)}</td></tr>
-                <tr><th>지방교육세 (30%)</th><td id="res-car-edu">${Calc.formatWon(res.localEduTax)}</td></tr>
+                <tr><th>${defType === "van11" ? "지방교육세 (승합차 면제)" : "지방교육세 (30%)"}</th><td id="res-car-edu">${Calc.formatWon(res.localEduTax)}</td></tr>
                 <tr><th>연간 자동차세 (할인 전)</th><td id="res-car-annual">${Calc.formatWon(res.annualCarTax)}</td></tr>
                 <tr><th>연납 할인액 (5%)</th><td id="res-car-prepay">${negWon(res.prepayDiscount)}</td></tr>
                 <tr><th>차량 취득세 (감면 전)</th><td id="res-car-acq-raw">${Calc.formatWon(res.rawAcqTax)}</td></tr>
@@ -1506,8 +1758,10 @@ module.exports = function buildExtendedPages(ctx) {
 
     const matrixLinks = (current) => `
       <section class="section-block">
-        <h2>배기량 · 차종별 자동차세 바로가기</h2>
+        <h2>배기량 · 차종별 자동차세 · 1월 연납 바로가기</h2>
         <div class="link-matrix">
+          <a class="matrix-pill ${current === "january-prepay" ? "current" : ""}" href="/car-tax/january-prepay/">1월 연납 할인 총정리</a>
+          <a class="matrix-pill ${current === "hybrid" ? "current" : ""}" href="/car-tax/hybrid/">하이브리드 자동차세</a>
           ${carPresets.map((c) => `<a class="matrix-pill ${current === c.slug ? "current" : ""}" href="/car-tax/${c.slug}/">${c.label}</a>`).join("")}
         </div>
       </section>
@@ -1515,12 +1769,16 @@ module.exports = function buildExtendedPages(ctx) {
 
     const faqs = [
       {
-        q: "2026년 자동차세 1월 연납 할인율은 얼마인가요?",
-        a: "2026년에도 연납 공제율 5%가 유지됩니다. 1월 연납 시 2~12월분(11개월)에 5%가 공제되어 연세액 대비 실질 약 4.58%를 아낄 수 있습니다."
+        q: "자동차세 1월 연납 신청 기간과 할인율은 얼마인가요?",
+        a: "매년 1월 16일~31일(주말·공휴일 포함 시 익영업일) 위택스·이택스(서울)에서 신청하며, 연납 공제율 5%가 2~12월분(11개월)에 적용되어 연세액 대비 실질 약 4.58%를 아낄 수 있습니다."
       },
       {
         q: "전기차 자동차세와 취득세 감면 한도는 얼마인가요?",
         a: "전기차는 배기량이 없어 크기에 상관없이 본세 10만 원 + 지방교육세 3만 원 = 연 13만 원 고정이며, 2026년 기준 차량 취득세(7%)에서 최대 140만 원까지 감면됩니다."
+      },
+      {
+        q: "연납한 차량을 연도 중에 팔거나 폐차하면 환급받나요?",
+        a: "네, 1월에 연납한 뒤 차량을 매도·폐차하면 소유권 이전일 또는 말소등록일 이후 잔여 일수만큼 일할 계산해 자동 환급(또는 위택스 환급 신청)됩니다."
       }
     ];
 
@@ -1529,7 +1787,7 @@ module.exports = function buildExtendedPages(ctx) {
       renderLayout({
         routePath: "/car-tax/",
         title: `${DATA.year} 자동차세 · 차량 취득세 계산기 (배기량·차령·1월 연납·전기차)`,
-        description: "배기량(cc), 차령 경감(최대 50%), 2026년 연납 5% 할인, 전기차 정액 13만 원 및 차량 취득세(경차 75만·전기차 140만 감면)를 한 번에 계산합니다.",
+        description: "배기량(cc), 차령 경감(최대 50%), 1월 연납 5% 할인(실효 4.58%), 전기차 정액 13만 원, 11인승 승합차 및 차량 취득세를 한 번에 계산합니다.",
         activeNav: "car-tax",
         priority: "0.9",
         breadcrumbs: [{ label: "홈", href: "/" }, { label: "자동차세·취득세", href: "/car-tax/" }],
@@ -1537,15 +1795,176 @@ module.exports = function buildExtendedPages(ctx) {
         bodyHtml: `
           <header class="page-head">
             <h1>${DATA.year} 자동차세 · 차량 취득세 계산기</h1>
-            <p class="subtitle">배기량·연식별 연간 자동차세(연납 할인 포함)와 신차·중고차 취득세를 계산합니다.</p>
+            <p class="subtitle">배기량·연식별 연간 자동차세(1월 연납 할인 포함)와 신차·중고차 취득세를 계산합니다.</p>
           </header>
           ${renderWidget("passenger", 1998, 3800)}
           ${renderAdSlot("calcMid")}
+          ${matrixLinks(null)}
           ${renderTaxTipsSection("carTax")}
           ${renderAffiliateCard("carTax")}
           ${renderOfficialLinks("carTax")}
-          ${matrixLinks(null)}
           ${renderFaqSection(faqs)}
+        `
+      })
+    );
+
+    /* 시즌 핵심 허브 1: 자동차세 1월 연납 할인 총정리 */
+    const prepayAllTable = renderCompareTable({
+      title: "배기량 · 차종별 자동차세 1월 연납 절약액 비교표 (신차 1년 차 기준)",
+      subtitle: "1월 연납(실효 4.58%)이 3월(3.75%)·6월(2.50%)·9월(1.25%)보다 할인 폭이 가장 큽니다. 차령이 3년 이상이면 경감 후 금액에서 추가 할인됩니다.",
+      headers: [
+        { label: "차종 · 배기량" },
+        { label: "연간 자동차세", num: true },
+        { label: "1월 연납 할인액", num: true },
+        { label: "1월 연납 최종액", num: true }
+      ],
+      rows: carPresets.map((c) => {
+        const x = Calc.calcCarTax({ carType: c.type, cc: c.cc, carAge: 1, prepayMonth: 1, carPrice: c.price * 10000 });
+        return {
+          current: c.slug === "2000cc",
+          cells: [`${c.label} (${c.examples})`, Calc.formatWon(x.annualCarTax), Calc.formatWon(x.prepayDiscount), Calc.formatWon(x.finalCarTax)]
+        };
+      })
+    });
+
+    const prepayMonthGuide = renderCompareTable({
+      title: "연납 신청 시기별 공제 기간과 실효 할인율 (중형 2,000cc 신차 기준)",
+      subtitle: "연납 공제율 5%는 신청한 달의 다음 달부터 12월까지 잔여 기간 세액에 적용됩니다.",
+      headers: [
+        { label: "신청 시기" },
+        { label: "공제 대상 기간" },
+        { label: "실효 할인율", num: true },
+        { label: "2,000cc 할인액", num: true },
+        { label: "최종 납부액", num: true }
+      ],
+      rows: [
+        { month: 1, label: "1월 연납 (1.16~1.31)", period: "2~12월 (11개월)", eff: "약 4.58%", cur: true },
+        { month: 3, label: "3월 연납 (3.16~3.31)", period: "4~12월 (9개월)", eff: "약 3.75%", cur: false },
+        { month: 6, label: "6월 연납 (6.16~6.30)", period: "7~12월 (6개월)", eff: "약 2.50%", cur: false },
+        { month: 9, label: "9월 연납 (9.16~9.30)", period: "10~12월 (3개월)", eff: "약 1.25%", cur: false },
+        { month: 0, label: "연납 미적용 (6·12월 분납)", period: "없음", eff: "0%", cur: false }
+      ].map((row) => {
+        const x = Calc.calcCarTax({ carType: "passenger", cc: 1998, carAge: 1, prepayMonth: row.month, carPrice: 3800 * 10000 });
+        return {
+          current: row.cur,
+          cells: [row.label, row.period, row.eff, Calc.formatWon(x.prepayDiscount), Calc.formatWon(x.finalCarTax)]
+        };
+      })
+    });
+
+    const prepayFaqs = [
+      {
+        q: "작년에 자동차세 연납을 했는데 올해도 다시 신청해야 하나요?",
+        a: "기존에 연납한 차량은 별도 재신청 없이 1월 중순에 할인된 연납 고지서가 자동 발송됩니다. 다만 신차를 새로 구매했거나 차량을 교체했다면 위택스·이택스에서 신규 연납 신청을 해야 합니다."
+      },
+      {
+        q: "자동차세 1월 연납은 자동이체가 되나요?",
+        a: "아니요, 연납은 납세자가 신고·납부하는 방식이라 정기분 자동이체가 적용되지 않습니다. 기한(1월 31일, 주말 시 익영업일) 안에 위택스·이택스·신용카드·간편결제로 직접 납부해야 하며, 미납 시 가산세 없이 6월·12월 정기분 고지서가 정상 발송됩니다."
+      }
+    ];
+
+    writePage(
+      "/car-tax/january-prepay/",
+      renderLayout({
+        routePath: "/car-tax/january-prepay/",
+        title: "자동차세 1월 연납 할인 계산기 (배기량별 절약액·신청 기간 총정리)",
+        description: "매년 1월 16일~31일 자동차세 연납(5% 공제·실효 4.58%) 시 1,000cc 경차부터 3,500cc 대형·전기차까지 배기량별 절약액과 납부액을 한눈에 비교합니다.",
+        activeNav: "car-tax",
+        priority: "0.85",
+        breadcrumbs: [
+          { label: "홈", href: "/" },
+          { label: "자동차세·취득세", href: "/car-tax/" },
+          { label: "1월 연납 할인 총정리", href: "/car-tax/january-prepay/" }
+        ],
+        faqs: prepayFaqs,
+        bodyHtml: `
+          <header class="page-head">
+            <div class="page-head-row">
+              <h1>자동차세 1월 연납 할인 계산기</h1>
+              <span class="meta-tag">1.16~1.31 신청 · 실효 4.58%</span>
+            </div>
+            <p class="subtitle">1월에 1년 치 자동차세를 미리 납부하면 2~12월분 세액의 5%(연세액 대비 약 4.58%)를 할인받습니다. 내 차 배기량별 절약액을 바로 확인하세요.</p>
+          </header>
+          ${renderWidget("passenger", 1998, 3800)}
+          ${renderAdSlot("pseoMid")}
+          ${prepayAllTable}
+          ${prepayMonthGuide}
+          ${matrixLinks("january-prepay")}
+          ${renderTaxTipsSection("carTax")}
+          ${renderOfficialLinks("carTax")}
+          ${renderFaqSection(prepayFaqs)}
+        `
+      })
+    );
+
+    /* 시즌 핵심 허브 2: 하이브리드 자동차세 · 취득세 */
+    const hybridRows = [
+      { label: "1.6 하이브리드 (쏘렌토·싼타페·그랜저·스포티지·아반떼 HEV)", type: "passenger", cc: 1598, price: 4200, cur: true },
+      { label: "2.0 하이브리드 (쏘나타·K5·코나·니로 외 HEV)", type: "passenger", cc: 1999, price: 3800, cur: false },
+      { label: "2.5 하이브리드 (팰리세이드·수입 대형 HEV)", type: "passenger", cc: 2497, price: 5800, cur: false },
+      { label: "동급 가솔린 2.5 (비교용)", type: "passenger", cc: 2497, price: 4500, cur: false },
+      { label: "전기차 EV (비교용 · 배기량 무관 정액)", type: "ev", cc: 0, price: 5000, cur: false }
+    ].map((h) => {
+      const x = Calc.calcCarTax({ carType: h.type, cc: h.cc, carAge: 1, prepayMonth: 1, carPrice: h.price * 10000 });
+      return {
+        current: h.cur,
+        cells: [h.label, Calc.formatWon(x.annualCarTax), Calc.formatWon(x.finalCarTax), Calc.formatWon(x.finalAcqTax)]
+      };
+    });
+
+    const hybridTable = renderCompareTable({
+      title: "하이브리드(HEV) 배기량별 자동차세 · 취득세 vs 전기차 비교",
+      subtitle: "하이브리드는 전기차 정액(13만 원)이 아니라 엔진 배기량 기준으로 과세되며, 하이브리드 취득세 감면(40만 원)은 2024년 말 종료되어 일반 승용차와 동일하게 7%가 부과됩니다.",
+      headers: [
+        { label: "차량 구분" },
+        { label: "연간 자동차세", num: true },
+        { label: "1월 연납 최종액", num: true },
+        { label: "신차 취득세 (예시가)", num: true }
+      ],
+      rows: hybridRows
+    });
+
+    const hybridFaqs = [
+      {
+        q: "하이브리드 자동차세는 전기차처럼 연 13만 원인가요?",
+        a: "아니요. 전기차·수소차만 배기량이 없어 연 13만 원 정액이며, 하이브리드는 내연기관 엔진이 탑재되어 배기량(cc) 기준으로 부과됩니다. 다만 쏘렌토·싼타페·그랜저 하이브리드처럼 1.6 터보(1,598cc) 엔진을 쓰는 모델은 연 약 29만 원(1월 연납 약 27.7만 원)으로 동급 2.5 가솔린(약 64.9만 원)보다 절반 이하로 저렴합니다."
+      },
+      {
+        q: "2026년 하이브리드 신차 구매 시 취득세 40만 원 감면이 되나요?",
+        a: "아니요, 하이브리드 취득세 감면(최대 40만 원)은 2024년 12월 31일로 일몰 종료되었습니다. 2026년 하이브리드 차량은 일반 비영업용 승용차와 동일하게 부가세 제외 공급가액의 7%가 부과되며, 개별소비세 감면(최대 70만 원, 교육세·부가세 연동 약 100만 원)만 2026년 말 반출분까지 유지됩니다."
+      }
+    ];
+
+    const hev16 = Calc.calcCarTax({ carType: "passenger", cc: 1598, carAge: 1, prepayMonth: 1, carPrice: 4200 * 10000 });
+    writePage(
+      "/car-tax/hybrid/",
+      renderLayout({
+        routePath: "/car-tax/hybrid/",
+        title: "2026 하이브리드 자동차세 · 취득세 계산기 (1.6·2.0·2.5 HEV 비교)",
+        description: `쏘렌토·싼타페·그랜저 1.6 하이브리드(1,598cc) 연 ${Calc.formatWon(hev16.annualCarTax)}(1월 연납 ${Calc.formatWon(hev16.finalCarTax)}) 및 2.0·2.5 HEV 자동차세와 2026 취득세를 계산합니다.`,
+        activeNav: "car-tax",
+        priority: "0.85",
+        breadcrumbs: [
+          { label: "홈", href: "/" },
+          { label: "자동차세·취득세", href: "/car-tax/" },
+          { label: "하이브리드 자동차세", href: "/car-tax/hybrid/" }
+        ],
+        faqs: hybridFaqs,
+        bodyHtml: `
+          <header class="page-head">
+            <div class="page-head-row">
+              <h1>2026 하이브리드 자동차세 · 취득세 계산기</h1>
+              <span class="meta-tag">1.6·2.0·2.5 HEV 배기량 기준</span>
+            </div>
+            <p class="subtitle">하이브리드는 엔진 배기량 기준으로 자동차세가 부과됩니다. 1,598cc 하이브리드 신차는 연 <strong>${Calc.formatWon(hev16.annualCarTax)}</strong>(1월 연납 <strong>${Calc.formatWon(hev16.finalCarTax)}</strong>)입니다.</p>
+          </header>
+          ${renderWidget("passenger", 1598, 4200)}
+          ${renderAdSlot("pseoMid")}
+          ${hybridTable}
+          ${matrixLinks("hybrid")}
+          ${renderTaxTipsSection("carTax")}
+          ${renderOfficialLinks("carTax")}
+          ${renderFaqSection(hybridFaqs)}
         `
       })
     );
@@ -1563,7 +1982,9 @@ module.exports = function buildExtendedPages(ctx) {
       });
       const cmp = renderCompareTable({
         title: `${c.label} 연식(차령)별 자동차세 비교`,
-        subtitle: "지방교육세 30% 포함 금액이며, 1월 연납 시 약 4.58%가 추가 할인됩니다.",
+        subtitle: c.type === "van11"
+          ? "11인승 이상 승합차는 정액 65,000원(지방교육세 면제, 차령 경감 미적용)이며, 1월 연납 시 약 4.58%가 할인됩니다."
+          : "지방교육세 30% 포함 금액이며, 1월 연납 시 약 4.58%가 추가 할인됩니다.",
         headers: [
           { label: "차령" },
           { label: "차령 경감", num: true },
@@ -1572,12 +1993,34 @@ module.exports = function buildExtendedPages(ctx) {
         ],
         rows: ageRows
       });
+      const prepayCmp = renderCompareTable({
+        title: `${c.label} 연납 시기별(1월·3월·6월·9월) 할인액 비교`,
+        subtitle: "신차 1년 차 기준이며, 1월 연납 신청 시 연간 절약액이 가장 큽니다.",
+        headers: [
+          { label: "납부 방식" },
+          { label: "할인액", num: true },
+          { label: "최종 납부액", num: true }
+        ],
+        rows: [
+          { m: 1, lbl: "1월 연납 (실효 4.58%)", cur: true },
+          { m: 3, lbl: "3월 연납 (실효 3.75%)", cur: false },
+          { m: 6, lbl: "6월 연납 (실효 2.50%)", cur: false },
+          { m: 9, lbl: "9월 연납 (실효 1.25%)", cur: false },
+          { m: 0, lbl: "연납 미적용 (6·12월 분납)", cur: false }
+        ].map((p) => {
+          const x = Calc.calcCarTax({ carType: c.type, cc: c.cc, carAge: 1, prepayMonth: p.m, carPrice: c.price * 10000 });
+          return {
+            current: p.cur,
+            cells: [p.lbl, Calc.formatWon(x.prepayDiscount), Calc.formatWon(x.finalCarTax)]
+          };
+        })
+      });
       writePage(
         `/car-tax/${c.slug}/`,
         renderLayout({
           routePath: `/car-tax/${c.slug}/`,
-          title: `${c.label} 자동차세 · 취득세 (연 ${Calc.formatWon(r1.annualCarTax)})`,
-          description: `${c.label} 신차 기준 연간 자동차세는 ${Calc.formatWon(r1.annualCarTax)}, 1월 연납 시 ${Calc.formatWon(r1.finalCarTax)}입니다.`,
+          title: `${c.label} 자동차세 · 1월 연납 (연 ${Calc.formatWon(r1.annualCarTax)})`,
+          description: `${c.label}(${c.examples}) 신차 기준 연간 자동차세는 ${Calc.formatWon(r1.annualCarTax)}, 1월 연납 시 ${Calc.formatWon(r1.finalCarTax)}입니다.`,
           activeNav: "car-tax",
           priority: "0.75",
           breadcrumbs: [
@@ -1588,12 +2031,16 @@ module.exports = function buildExtendedPages(ctx) {
           faqs,
           bodyHtml: `
             <header class="page-head">
-              <h1>${c.label} 자동차세 · 취득세</h1>
-              <p class="subtitle">신차 기준 연간 자동차세는 <strong>${Calc.formatWon(r1.annualCarTax)}</strong>, 1월 연납 시 <strong>${Calc.formatWon(r1.finalCarTax)}</strong>입니다.</p>
+              <div class="page-head-row">
+                <h1>${c.label} 자동차세 · 취득세</h1>
+                <span class="meta-tag">${c.examples}</span>
+              </div>
+              <p class="subtitle">신차 기준 연간 자동차세는 <strong>${Calc.formatWon(r1.annualCarTax)}</strong>, 1월 연납 시 <strong>${Calc.formatWon(r1.finalCarTax)}</strong>(할인 ${Calc.formatWon(r1.prepayDiscount)})입니다.</p>
             </header>
             ${renderWidget(c.type, c.cc, c.price)}
             ${renderAdSlot("pseoMid")}
             ${cmp}
+            ${prepayCmp}
             ${renderTaxTipsSection("carTax")}
             ${renderAffiliateCard("carTax")}
             ${renderOfficialLinks("carTax")}

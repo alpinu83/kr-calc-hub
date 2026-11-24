@@ -62,6 +62,14 @@ function verify() {
     "tips/index.html",
     "year-end-tax/index.html",
     "year-end-tax/5000-manwon/index.html",
+    "year-end-tax/checklist/index.html",
+    "year-end-tax/card-deduction/index.html",
+    "year-end-tax/pension-irp/index.html",
+    "year-end-tax/monthly-rent/index.html",
+    "year-end-tax/child-credit/index.html",
+    "year-end-tax/medical-deduction/index.html",
+    "salary/2026-vs-2025/index.html",
+    "salary/compare-5000-manwon/index.html",
     "couple-tax/index.html",
     "couple-tax/7000-5000/index.html",
     "business-tax/index.html",
@@ -72,6 +80,10 @@ function verify() {
     "financial-tax/index.html",
     "financial-tax/3000-manwon/index.html",
     "car-tax/index.html",
+    "car-tax/january-prepay/index.html",
+    "car-tax/hybrid/index.html",
+    "car-tax/3000cc/index.html",
+    "car-tax/van-11/index.html",
     "other-income/index.html",
     "other-income/100-manwon/index.html",
     "holding-tax/index.html",
@@ -85,6 +97,8 @@ function verify() {
     "assets/app.js",
     "assets/app-ext.js",
     "assets/favicon.svg",
+    "assets/apple-touch-icon.png",
+    "assets/og-image.png",
     "assets/og-image.svg"
   ];
   const ratesData = JSON.parse(fs.readFileSync(path.join(ROOT, "data/rates-2026.json"), "utf8"));
@@ -96,18 +110,30 @@ function verify() {
   }
 
   const htmlFiles = walkHtml(DIST);
-  assert(htmlFiles.length >= 255, `Expected at least 255 HTML files, found ${htmlFiles.length}`);
+  assert(htmlFiles.length >= 280, `Expected at least 280 HTML files, found ${htmlFiles.length}`);
 
   let checkedLinks = 0;
+  const seenTitles = new Map();
+  const seenDescs = new Map();
   for (const file of htmlFiles) {
     const relFile = path.relative(DIST, file);
     const html = fs.readFileSync(file, "utf8");
 
-    assert(/<title>[^<]+<\/title>/.test(html), `Missing <title> in ${relFile}`);
-    assert(/<meta name="description" content="[^"]+"/.test(html), `Missing description in ${relFile}`);
+    const titleMatch = html.match(/<title>([^<]+)<\/title>/);
+    assert(titleMatch, `Missing <title> in ${relFile}`);
+    const descMatch = html.match(/<meta name="description" content="([^"]+)"/);
+    assert(descMatch, `Missing description in ${relFile}`);
     assert(/<link rel="canonical" href="https?:\/\/[^"]+"/.test(html), `Missing canonical in ${relFile}`);
+    assert(/<meta property="og:image" content="https?:\/\/[^"]+\/assets\/og-image\.png"/.test(html), `Expected PNG og:image in ${relFile}`);
     assert(/<h1[\s>]/.test(html), `Missing <h1> in ${relFile}`);
     assert(!html.includes("#affiliate-"), `Dummy #affiliate-* link found in ${relFile}`);
+
+    if (relFile !== "404.html") {
+      assert(!seenTitles.has(titleMatch[1]), `Duplicate <title> "${titleMatch[1]}" in ${relFile} and ${seenTitles.get(titleMatch[1])}`);
+      seenTitles.set(titleMatch[1], relFile);
+      assert(!seenDescs.has(descMatch[1]), `Duplicate description "${descMatch[1]}" in ${relFile} and ${seenDescs.get(descMatch[1])}`);
+      seenDescs.set(descMatch[1], relFile);
+    }
 
     const jsonLdMatch = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
     assert(jsonLdMatch, `Missing JSON-LD in ${relFile}`);

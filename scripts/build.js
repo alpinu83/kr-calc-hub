@@ -53,6 +53,8 @@ function copyAssets() {
     "app.js",
     "app-ext.js",
     "favicon.svg",
+    "apple-touch-icon.png",
+    "og-image.png",
     "og-image.svg",
     "profile.jpg"
   ];
@@ -398,7 +400,8 @@ function renderLayout({
     DATA.monetization && DATA.monetization.adsensePublisherId
       ? `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${escapeHtml(DATA.monetization.adsensePublisherId)}" crossorigin="anonymous"></script>`
       : "";
-  const ogImageUrl = `${BASE_URL}/assets/og-image.svg`;
+  const ogImageUrl = `${BASE_URL}/assets/og-image.png`;
+  const ogImageAlt = `${DATA.year} ${DATA.siteName} · 한국 세금·금융·노동 20종 실시간 계산기`;
 
   return `<!DOCTYPE html>
 <html lang="ko">
@@ -409,6 +412,7 @@ function renderLayout({
   <meta name="description" content="${escapeHtml(description)}" />
   <meta name="theme-color" content="#2563eb" />
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
   <link rel="canonical" href="${escapeHtml(canonical)}" />
   <link rel="alternate" type="application/rss+xml" title="${escapeHtml(DATA.siteName)} RSS" href="/rss.xml" />
   ${googleVerify}
@@ -420,11 +424,16 @@ function renderLayout({
   <meta property="og:description" content="${escapeHtml(description)}" />
   <meta property="og:url" content="${escapeHtml(canonical)}" />
   <meta property="og:image" content="${escapeHtml(ogImageUrl)}" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:alt" content="${escapeHtml(ogImageAlt)}" />
   <meta property="og:locale" content="ko_KR" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${escapeHtml(title)} · ${escapeHtml(DATA.siteName)}" />
   <meta name="twitter:description" content="${escapeHtml(description)}" />
   <meta name="twitter:image" content="${escapeHtml(ogImageUrl)}" />
+  <meta name="twitter:image:alt" content="${escapeHtml(ogImageAlt)}" />
   <link rel="stylesheet" href="/assets/styles.css" />
   ${ga4Head}
   ${clarityHead}
@@ -624,11 +633,45 @@ function renderSalaryWidget(defaultManwon) {
 
 function buildSalaryPages() {
   const list = DATA.pseo.salaryManwon;
+  const compareList = [3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 12000, 15000];
+  const RATES_2025 = {
+    salary: Object.assign({}, DATA.salary, {
+      nationalPensionRate: 0.045,
+      nationalPensionMinBase: 400000,
+      nationalPensionMaxBase: 6370000,
+      healthInsuranceRate: 0.03545,
+      longTermCareRateOfHealth: 0.1295,
+      employmentInsuranceRate: 0.009
+    })
+  };
+  const RATES_2027 = {
+    salary: Object.assign({}, DATA.salary, {
+      nationalPensionRate: 0.05,
+      nationalPensionMinBase: 410000,
+      nationalPensionMaxBase: 6590000,
+      healthInsuranceRate: 0.03595,
+      longTermCareRateOfHealth: 0.139,
+      employmentInsuranceRate: 0.009
+    })
+  };
+  const fmtDiff = (diff) => (diff >= 0 ? "+" : "-") + Calc.formatWon(Math.abs(diff));
+
   const matrixLinks = (current) => `
     <section class="section-block">
       <h2>연봉 구간별 실수령액</h2>
       <div class="link-matrix">
+        <a class="matrix-pill ${current === "2026-vs-2025" ? "current" : ""}" href="/salary/2026-vs-2025/">2026 vs 2025·2027 비교표</a>
         ${list.map((m) => `<a class="matrix-pill ${current === m ? "current" : ""}" href="/salary/${m}-manwon/">연봉 ${formatKoreanManwonLabel(m)}</a>`).join("")}
+      </div>
+    </section>
+  `;
+
+  const compareMatrixLinks = (current) => `
+    <section class="section-block">
+      <h2>연봉별 2025·2026·2027 실수령액 비교 바로가기</h2>
+      <div class="link-matrix">
+        <a class="matrix-pill ${current === "hub" ? "current" : ""}" href="/salary/2026-vs-2025/">전체 연봉 비교표</a>
+        ${compareList.map((m) => `<a class="matrix-pill ${current === m ? "current" : ""}" href="/salary/compare-${m}-manwon/">연봉 ${formatKoreanManwonLabel(m)} 비교</a>`).join("")}
       </div>
     </section>
   `;
@@ -674,12 +717,176 @@ function buildSalaryPages() {
         ${renderAdSlot("calcMid")}
         ${renderTaxTipsSection("salary")}
         ${renderAffiliateCard("salary")}
-          ${renderOfficialLinks("salary")}
+        ${renderOfficialLinks("salary")}
+        ${compareMatrixLinks(null)}
         ${matrixLinks(null)}
         ${renderFaqSection(mainFaqs)}
       `
     })
   );
+
+  /* 2026 vs 2025·2027 연봉 실수령액 비교 허브 */
+  const compareFaqs = [
+    {
+      q: "2026년에 2025년보다 월 실수령액이 줄어든 이유는 무엇인가요?",
+      a: "2026년부터 국민연금 근로자 요율이 4.5%→4.75%(상한액 637만→659만 원), 건강보험료율이 3.545%→3.595%, 장기요양보험료율이 건강보험료의 12.95%→13.14%로 인상되었기 때문입니다."
+    },
+    {
+      q: "2027년 1월부터는 4대보험이 또 얼마나 바뀌나요?",
+      a: "국민연금법 부칙에 따라 2027년 국민연금 근로자 요율이 4.75%→5.0%(합계 10%)로 확정 인상되며, 건강보험료율은 3.595%(합계 7.19%) 동결이 결정되었습니다. 장기요양보험료율은 건강보험료의 13.90%로 장기요양위원회가 의결했고, 고용보험 실업급여 요율(정부안 1.0%)은 시행령 개정 여부에 따라 추가 변동될 수 있습니다."
+    }
+  ];
+
+  const rateSummaryTable = renderCompareTable({
+    title: "2025 · 2026 · 2027년 근로자 4대보험 요율 변화",
+    subtitle: "근로자 본인 부담률 기준입니다. 2027년 고용보험은 현행 0.9% 유지 기준(정부안 1.0% 확정 시 월급의 0.1% 추가 공제)으로 표시했습니다.",
+    headers: [
+      { label: "항목" },
+      { label: "2025년 (확정)", num: true },
+      { label: "2026년 (현행)", num: true },
+      { label: "2027년 (확정·의결)", num: true }
+    ],
+    rows: [
+      { current: false, cells: ["국민연금 (상한액)", "4.50% (637만)", "4.75% (659만)", "5.00% (법률 확정)"] },
+      { current: false, cells: ["건강보험", "3.545%", "3.595%", "3.595% (동결 확정)"] },
+      { current: false, cells: ["장기요양 (건보료 대비)", "12.95%", "13.14%", "13.90% (위원회 의결)"] },
+      { current: false, cells: ["고용보험 (실업급여)", "0.90%", "0.90%", "0.90% (정부안 1.0%)"] }
+    ]
+  });
+
+  const allTierCompareTable = renderCompareTable({
+    title: "연봉 구간별 2025 vs 2026 vs 2027 월 실수령액 비교표",
+    subtitle: "공제대상가족 1명(본인)·비과세 식대 월 20만 원·근로소득 간이세액표 100% 동일 적용 기준입니다.",
+    headers: [
+      { label: "연봉" },
+      { label: "2025 월 실수령", num: true },
+      { label: "2026 월 실수령", num: true },
+      { label: "25→26 월 차액", num: true },
+      { label: "2027 예상 실수령", num: true }
+    ],
+    rows: compareList.map((m) => {
+      const r25 = Calc.calcSalary(m * 10000, DATA.salary.defaultNonTaxableMonthly, 1, RATES_2025);
+      const r26 = Calc.calcSalary(m * 10000, DATA.salary.defaultNonTaxableMonthly, 1, DATA);
+      const r27 = Calc.calcSalary(m * 10000, DATA.salary.defaultNonTaxableMonthly, 1, RATES_2027);
+      return {
+        current: m === 5000,
+        cells: [
+          `연봉 ${formatKoreanManwonLabel(m)}`,
+          Calc.formatWon(r25.monthlyNet),
+          Calc.formatWon(r26.monthlyNet),
+          fmtDiff(r26.monthlyNet - r25.monthlyNet),
+          Calc.formatWon(r27.monthlyNet)
+        ]
+      };
+    })
+  });
+
+  writePage(
+    "/salary/2026-vs-2025/",
+    renderLayout({
+      routePath: "/salary/2026-vs-2025/",
+      title: "2026 vs 2025·2027 연봉 실수령액 비교표 (4대보험 인상 영향)",
+      description: "국민연금 4.5%→4.75%→5.0%, 건강보험 7.19%, 장기요양 인상에 따른 연봉 3,000만~1.5억 월 실수령액 변화를 연도별로 비교합니다.",
+      activeNav: "salary",
+      priority: "0.85",
+      breadcrumbs: [
+        { label: "홈", href: "/" },
+        { label: "연봉 실수령액", href: "/salary/" },
+        { label: "2026 vs 2025·2027 비교", href: "/salary/2026-vs-2025/" }
+      ],
+      faqs: compareFaqs,
+      bodyHtml: `
+        <header class="page-head">
+          <div class="page-head-row">
+            <h1>2026 vs 2025·2027 연봉 실수령액 비교표</h1>
+            <span class="meta-tag">4대보험 요율 변동 반영</span>
+          </div>
+          <p class="subtitle">국민연금 단계 인상(4.5%→4.75%→5.0%)과 건강·장기요양보험 변화로 연봉별 월 실수령액이 얼마나 달라지는지 한눈에 비교합니다.</p>
+        </header>
+        ${renderSalaryWidget(5000)}
+        ${renderAdSlot("pseoMid")}
+        ${allTierCompareTable}
+        ${rateSummaryTable}
+        ${compareMatrixLinks("hub")}
+        ${renderTaxTipsSection("salary")}
+        ${renderOfficialLinks("salary")}
+        ${renderFaqSection(compareFaqs)}
+        ${matrixLinks("2026-vs-2025")}
+      `
+    })
+  );
+
+  compareList.forEach((m, idx) => {
+    const label = formatKoreanManwonLabel(m);
+    const r25 = Calc.calcSalary(m * 10000, DATA.salary.defaultNonTaxableMonthly, 1, RATES_2025);
+    const r26 = Calc.calcSalary(m * 10000, DATA.salary.defaultNonTaxableMonthly, 1, DATA);
+    const r27 = Calc.calcSalary(m * 10000, DATA.salary.defaultNonTaxableMonthly, 1, RATES_2027);
+    const diff26 = r26.monthlyNet - r25.monthlyNet;
+    const diff27 = r27.monthlyNet - r26.monthlyNet;
+    const prev = idx > 0 ? { href: `/salary/compare-${compareList[idx - 1]}-manwon/`, label: `연봉 ${formatKoreanManwonLabel(compareList[idx - 1])} 비교` } : null;
+    const next = idx < compareList.length - 1 ? { href: `/salary/compare-${compareList[idx + 1]}-manwon/`, label: `연봉 ${formatKoreanManwonLabel(compareList[idx + 1])} 비교` } : null;
+
+    const itemTable = renderCompareTable({
+      title: `연봉 ${label} 2025 · 2026 · 2027 항목별 공제 비교`,
+      subtitle: "비과세 식대 월 20만 원·부양가족 1명(본인)·간이세액표 100% 기준. 2027년 고용보험 정부안(1.0%) 확정 시 월 " + Calc.formatWon(Math.floor(r26.taxableMonthly * 0.001 / 10) * 10) + " 추가 공제됩니다.",
+      headers: [
+        { label: "공제 / 수령 항목" },
+        { label: "2025년", num: true },
+        { label: "2026년 (현행)", num: true },
+        { label: "2027년 (예정)", num: true },
+        { label: "25→26 차액", num: true }
+      ],
+      rows: [
+        { current: false, cells: ["국민연금", Calc.formatWon(r25.nationalPension), Calc.formatWon(r26.nationalPension), Calc.formatWon(r27.nationalPension), fmtDiff(r26.nationalPension - r25.nationalPension)] },
+        { current: false, cells: ["건강보험", Calc.formatWon(r25.healthInsurance), Calc.formatWon(r26.healthInsurance), Calc.formatWon(r27.healthInsurance), fmtDiff(r26.healthInsurance - r25.healthInsurance)] },
+        { current: false, cells: ["장기요양보험", Calc.formatWon(r25.longTermCare), Calc.formatWon(r26.longTermCare), Calc.formatWon(r27.longTermCare), fmtDiff(r26.longTermCare - r25.longTermCare)] },
+        { current: false, cells: ["고용보험", Calc.formatWon(r25.employmentInsurance), Calc.formatWon(r26.employmentInsurance), Calc.formatWon(r27.employmentInsurance), fmtDiff(r26.employmentInsurance - r25.employmentInsurance)] },
+        { current: false, cells: ["근로소득세 + 지방세", Calc.formatWon(r25.incomeTax + r25.localIncomeTax), Calc.formatWon(r26.incomeTax + r26.localIncomeTax), Calc.formatWon(r27.incomeTax + r27.localIncomeTax), "0원"] },
+        { current: true, cells: ["월 실수령액", Calc.formatWon(r25.monthlyNet), Calc.formatWon(r26.monthlyNet), Calc.formatWon(r27.monthlyNet), fmtDiff(diff26)] },
+        { current: false, cells: ["연 실수령액 (×12)", Calc.formatWon(r25.annualNet), Calc.formatWon(r26.annualNet), Calc.formatWon(r27.annualNet), fmtDiff(diff26 * 12)] }
+      ]
+    });
+
+    const related = renderRelatedCalcs([
+      { title: `연봉 ${label} 상세 실수령액`, desc: "부양가족 수별·비과세별 상세 시뮬레이션", href: `/salary/${m}-manwon/` },
+      { title: `연봉 ${label} 연말정산 환급액`, desc: "카드·연금저축·월세 공제 시 13월의 월급 계산", href: m <= 10000 ? `/year-end-tax/${m}-manwon/` : "/year-end-tax/" },
+      { title: "2026 vs 2025·2027 전체 비교표", desc: "연봉 3,000만~1.5억 전 구간 한눈에 비교", href: "/salary/2026-vs-2025/" }
+    ]);
+
+    writePage(
+      `/salary/compare-${m}-manwon/`,
+      renderLayout({
+        routePath: `/salary/compare-${m}-manwon/`,
+        title: `연봉 ${label} 2026 vs 2025·2027 실수령액 비교 (월 ${fmtDiff(diff26)})`,
+        description: `연봉 ${label}의 월 실수령액은 2025년 ${Calc.formatWon(r25.monthlyNet)}에서 2026년 ${Calc.formatWon(r26.monthlyNet)}(월 ${fmtDiff(diff26)}), 2027년 ${Calc.formatWon(r27.monthlyNet)}(월 ${fmtDiff(diff27)})으로 변동됩니다.`,
+        activeNav: "salary",
+        priority: "0.75",
+        breadcrumbs: [
+          { label: "홈", href: "/" },
+          { label: "연봉 실수령액", href: "/salary/" },
+          { label: "2026 vs 2025·2027 비교", href: "/salary/2026-vs-2025/" },
+          { label: `연봉 ${label}`, href: `/salary/compare-${m}-manwon/` }
+        ],
+        faqs: compareFaqs,
+        bodyHtml: `
+          <header class="page-head">
+            <div class="page-head-row">
+              <h1>연봉 ${label} 2025 · 2026 · 2027 실수령액 비교</h1>
+              <span class="meta-tag">4대보험 변화 분석</span>
+            </div>
+            <p class="subtitle">연봉 ${label} 기준 2026년 월 실수령액은 <strong>${Calc.formatWon(r26.monthlyNet)}</strong>으로 2025년 대비 월 <strong>${fmtDiff(diff26)}</strong>(연 ${fmtDiff(diff26 * 12)}), 2027년에는 월 <strong>${fmtDiff(diff27)}</strong> 변동됩니다.</p>
+          </header>
+          ${renderSalaryWidget(m)}
+          ${renderAdSlot("pseoMid")}
+          ${itemTable}
+          ${related}
+          ${renderPrevNext(prev, next)}
+          ${compareMatrixLinks(m)}
+          ${renderFaqSection(compareFaqs)}
+        `
+      })
+    );
+  });
 
   list.forEach((manwon, idx) => {
     const label = formatKoreanManwonLabel(manwon);
@@ -722,8 +929,8 @@ function buildSalaryPages() {
       }
     ];
     const related = renderRelatedCalcs([
+      { title: "2026 vs 2025·2027 실수령액 비교", desc: "4대보험 인상으로 월급이 얼마나 줄어드는지 확인", href: compareList.includes(manwon) ? `/salary/compare-${manwon}-manwon/` : "/salary/2026-vs-2025/" },
       { title: "퇴직금 계산기", desc: `월급 약 ${Math.round(manwon / 12)}만 원 기준 근속연수별 퇴직금`, href: "/severance/" },
-      { title: "실업급여 계산기", desc: "이직·퇴사 시 하루 구직급여와 총 수령액", href: "/unemployment/" },
       { title: "프리랜서 3.3% 비교", desc: "같은 금액을 사업소득 3.3%로 받을 때 실수령액", href: "/freelancer/" }
     ]);
 
@@ -753,7 +960,7 @@ function buildSalaryPages() {
           ${renderAdSlot("pseoMid")}
           ${salaryCompare}
           ${renderTaxTipsSection("salary")}
-        ${renderAffiliateCard("salary")}
+          ${renderAffiliateCard("salary")}
           ${renderOfficialLinks("salary")}
           ${related}
           ${renderPrevNext(prev, next)}
@@ -2564,15 +2771,18 @@ function buildHomePage() {
           <h2>자주 찾는 구간 바로가기</h2>
           <div class="link-matrix">
             <a class="matrix-pill" href="/year-end-tax/">2026 연말정산 환급액</a>
+            <a class="matrix-pill" href="/year-end-tax/checklist/">12월 막판 절세 체크리스트</a>
             <a class="matrix-pill" href="/couple-tax/">맞벌이 부부 최적 몰아주기</a>
-            <a class="matrix-pill" href="/business-tax/5000-manwon/">매출 5,000만 종합소득세</a>
+            <a class="matrix-pill" href="/salary/2026-vs-2025/">2026 vs 2025·2027 실수령액 비교</a>
             <a class="matrix-pill" href="/salary/5000-manwon/">연봉 5,000만 원 실수령액</a>
             <a class="matrix-pill" href="/salary/10000-manwon/">연봉 1억 원 실수령액</a>
+            <a class="matrix-pill" href="/car-tax/january-prepay/">자동차세 1월 연납 할인 총정리</a>
+            <a class="matrix-pill" href="/car-tax/hybrid/">하이브리드 자동차세·취득세</a>
+            <a class="matrix-pill" href="/car-tax/ev/">전기차 자동차세·취득세</a>
+            <a class="matrix-pill" href="/business-tax/5000-manwon/">매출 5,000만 종합소득세</a>
             <a class="matrix-pill" href="/inheritance-tax/15-eok/">상속재산 15억 상속세</a>
             <a class="matrix-pill" href="/transfer-tax/buy-8-sell-15/">8억→15억 부동산 양도세</a>
             <a class="matrix-pill" href="/holding-tax/15-eok/">공시가 15억 보유세</a>
-            <a class="matrix-pill" href="/car-tax/2000cc/">2,000cc 자동차세 연납</a>
-            <a class="matrix-pill" href="/car-tax/ev/">전기차 자동차세·취득세</a>
             <a class="matrix-pill" href="/weekly-holiday/2027-minimum-wage/">2027 최저임금 10,700원 비교</a>
             <a class="matrix-pill" href="/stock-tax/1000-manwon/">해외주식 1,000만 원 양도세</a>
             <a class="matrix-pill" href="/gift-tax/adult-child-1-eok/">성년 자녀 1억 증여세</a>
@@ -3032,7 +3242,11 @@ Sitemap: ${BASE_URL}/sitemap.xml
 - [2026 해외주식 양도소득세 계산기](${BASE_URL}/stock-tax/): 기본공제 250만·22% 분리과세 및 2026 국내시장복귀계좌(RIA) 공제
 - [2026 금융소득종합과세 계산기](${BASE_URL}/financial-tax/): 이자·배당 2,000만 초과 비교과세, 국내 배당 10% 그로스업·배당세액공제
 
-## 절세 가이드 & 공식 참고 링크
+## 절세 가이드 & 시즌 핵심 비교표
+- [2026 vs 2025·2027 연봉 실수령액 비교표](${BASE_URL}/salary/2026-vs-2025/): 국민연금 4.5%→4.75%→5.0%, 건강보험 7.19%, 장기요양 인상에 따른 연봉별 월 실수령액 변화 비교
+- [2026 연말정산 12월 막판 절세 체크리스트](${BASE_URL}/year-end-tax/checklist/): 신용·체크카드 25% 황금비율, 연금저축·IRP 900만, 월세·자녀·의료비 공제별 실제 환급액 비교
+- [자동차세 1월 연납 할인 총정리](${BASE_URL}/car-tax/january-prepay/): 1월 16~31일 신청 실효 4.58% 할인, 1,000cc 경차~3,500cc 대형·전기차·11인승 승합차 절약액 비교
+- [2026 하이브리드 자동차세 · 취득세](${BASE_URL}/car-tax/hybrid/): 1.6·2.0·2.5 HEV 배기량 과세 비교 및 2026년 취득세 7% 과세 안내
 - [2026 세금별 절세 꿀팁 80선](${BASE_URL}/tips/): 20개 분야별 실전 절세 체크리스트
 - [국세청·정부 공식 링크 모음](${BASE_URL}/links/): 홈택스, 위택스, 4대보험, 고용24 공식 바로가기
 `;
