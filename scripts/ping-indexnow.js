@@ -18,19 +18,23 @@ async function main() {
     console.log("IndexNow: data/rates-2026.json에 indexNowKey가 없어 건너뜁니다.");
     return;
   }
-  if (!fs.existsSync(SITEMAP)) {
-    console.log("IndexNow: dist/sitemap.xml이 없어 건너뜁니다.");
-    return;
+  const baseUrl = String(DATA.siteUrl || "").replace(/\/+$/, "");
+  let xml = "";
+  if (fs.existsSync(SITEMAP)) {
+    xml = fs.readFileSync(SITEMAP, "utf8");
+  } else {
+    const res = await fetch(`${baseUrl}/sitemap.xml`);
+    if (!res.ok) {
+      console.log(`IndexNow: ${baseUrl}/sitemap.xml 조회 실패 (HTTP ${res.status})`);
+      return;
+    }
+    xml = await res.text();
   }
-
-  const xml = fs.readFileSync(SITEMAP, "utf8");
   const urls = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim());
   if (!urls.length) {
     console.log("IndexNow: 제출할 URL이 없습니다.");
     return;
   }
-
-  const baseUrl = String(DATA.siteUrl || "").replace(/\/+$/, "");
   const host = new URL(baseUrl).hostname;
   const payload = {
     host,
