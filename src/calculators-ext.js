@@ -159,10 +159,13 @@
     const medicalBase = Math.max(0, medical - gross * 0.03);
     const medicalCredit = Math.floor(Math.min(medicalBase, 7000000) * 0.15);
     const educationCredit = Math.floor(education * 0.15);
+    // 소득세법 제59조의4 제4항: 일반(지정)기부금 공제대상 한도 = 근로소득금액의 30% (1,000만 이하 15%, 초과 30%)
+    const donationLimit = Math.floor(earnedIncome * 0.3);
+    const eligibleDonation = Math.min(donation, donationLimit);
     const donationCredit =
-      donation <= 10000000
-        ? Math.floor(donation * 0.15)
-        : Math.floor(1500000 + (donation - 10000000) * 0.3);
+      eligibleDonation <= 10000000
+        ? Math.floor(eligibleDonation * 0.15)
+        : Math.floor(1500000 + (eligibleDonation - 10000000) * 0.3);
     const specialTaxCredits = rentCredit + medicalCredit + educationCredit + donationCredit;
 
     // Track A: 특별소득공제(건강·장기요양·고용보험) + 특별세액공제 + 월세 세액공제
@@ -555,19 +558,34 @@
     let transferTaxRaw = 0;
     let note = "";
     if (taxBase > 0) {
+      const baseCalc = calcProgressiveIncomeTax(taxBase);
+      const heavyAdd = heavyMode === "two" ? 0.2 : heavyMode === "three" ? 0.3 : 0;
+      const heavyTax = heavyAdd > 0 ? Math.floor(baseCalc.tax + taxBase * heavyAdd) : 0;
+
       if (holdYears < 1) {
-        transferTaxRaw = Math.floor(taxBase * 0.7);
-        note = "주택 1년 미만 단기 양도(70% 단일세율) 적용";
+        const shortTax = Math.floor(taxBase * 0.7);
+        if (heavyTax > shortTax) {
+          transferTaxRaw = heavyTax;
+          note = `단기 양도(70%)와 다주택 중과(+${Math.round(heavyAdd * 100)}%p) 중복 적용: 소득세법 제104조 제5항에 따라 더 큰 중과세액 적용`;
+        } else {
+          transferTaxRaw = shortTax;
+          note = "주택 1년 미만 단기 양도(70% 단일세율) 적용";
+        }
       } else if (holdYears < 2) {
-        transferTaxRaw = Math.floor(taxBase * 0.6);
-        note = "주택 1년 이상~2년 미만 단기 양도(60% 단일세율) 적용";
+        const shortTax = Math.floor(taxBase * 0.6);
+        if (heavyTax > shortTax) {
+          transferTaxRaw = heavyTax;
+          note = `단기 양도(60%)와 다주택 중과(+${Math.round(heavyAdd * 100)}%p) 중복 적용: 소득세법 제104조 제5항에 따라 더 큰 중과세액 적용`;
+        } else {
+          transferTaxRaw = shortTax;
+          note = "주택 1년 이상~2년 미만 단기 양도(60% 단일세율) 적용";
+        }
       } else {
-        const baseCalc = calcProgressiveIncomeTax(taxBase);
         if (heavyMode === "two") {
-          transferTaxRaw = Math.floor(baseCalc.tax + taxBase * 0.2);
+          transferTaxRaw = heavyTax;
           note = "조정대상지역 2주택 중과(기본세율 +20%p, 장기보유특별공제 배제 · 2026.5.10 이후 복귀)";
         } else if (heavyMode === "three") {
-          transferTaxRaw = Math.floor(baseCalc.tax + taxBase * 0.3);
+          transferTaxRaw = heavyTax;
           note = "조정대상지역 3주택 이상 중과(기본세율 +30%p, 장기보유특별공제 배제 · 2026.5.10 이후 복귀)";
         } else {
           transferTaxRaw = baseCalc.tax;
@@ -767,8 +785,10 @@
     const annualCarTax = discountedBase + localEduTax;
 
     // 2026년 연납 공제 (잔여기간 5% 공제 -> 실공제율 1월 약 4.58%, 3월 3.75%, 6월 2.5%, 9월 1.25%)
+    // 지방세법 제128조①·③: 연세액 10만 원 이하 차량은 6월에 연세액 전액 일시부과되므로 6월·9월 연납 불가(1월·3월만 가능)
+    const prepayUnavailable = annualCarTax > 0 && annualCarTax <= 100000 && (prepayMonth === 6 || prepayMonth === 9);
     const prepayRates = { 0: 0, 1: (11 / 12) * 0.05, 3: (9 / 12) * 0.05, 6: (6 / 12) * 0.05, 9: (3 / 12) * 0.05 };
-    const prepayRate = prepayRates[prepayMonth] || 0;
+    const prepayRate = prepayUnavailable ? 0 : prepayRates[prepayMonth] || 0;
     const prepayDiscount = floor10(annualCarTax * prepayRate);
     const finalCarTax = annualCarTax - prepayDiscount;
 
@@ -801,6 +821,7 @@
       annualCarTax,
       prepayMonth,
       prepayRate,
+      prepayUnavailable,
       prepayDiscount,
       finalCarTax,
       carPrice,
@@ -988,6 +1009,7 @@
       }[household] || { up: 4000000, flat: 9000000, maxInc: 22000000, maxPay: 1650000 };
 
     let eitcRaw = 0;
+    let belowMinThreshold = false;
     if (assetEligible && income > 0 && income < config.maxInc) {
       if (income < config.up) {
         eitcRaw = (income / config.up) * config.maxPay;
@@ -997,6 +1019,11 @@
         eitcRaw = config.maxPay * ((config.maxInc - income) / (config.maxInc - config.flat));
       }
       eitcRaw = Math.max(0, round10(eitcRaw));
+      // 조특법 제100조의5 제1항 단서: 산정된 근로장려금이 1만 5천 원 미만이면 없는 것으로 봄(부지급)
+      if (eitcRaw > 0 && eitcRaw < 15000) {
+        eitcRaw = 0;
+        belowMinThreshold = true;
+      }
     }
 
     // 자녀장려금 (조특법 제100조의29: 18세 미만 자녀, 홑벌이/맞벌이 7,000만 원 미만, 1인당 50~100만 원)
@@ -1012,7 +1039,11 @@
     }
 
     const factor = assetHalfPenalty ? 0.5 : 1;
-    const eitc = round10(eitcRaw * factor);
+    let eitc = round10(eitcRaw * factor);
+    if (eitc > 0 && eitc < 15000) {
+      eitc = 0;
+      belowMinThreshold = true;
+    }
     const ctc = round10(ctcRaw * factor);
     const totalBenefit = eitc + ctc;
 
@@ -1023,13 +1054,16 @@
       if (reclassifiedToSingleEarner) {
         notes.push("부부 합산 소득이 600만 원 미만(각 300만 원 요건 미달)이라 법령상 홑벌이가구 기준으로 산정되었습니다.");
       }
+      if (belowMinThreshold) {
+        notes.push("산정된 근로장려금이 1만 5,000원 미만이어서 조세특례제한법 제100조의5에 따라 지급되지 않습니다.");
+      }
       if (assetHalfPenalty && totalBenefit > 0) {
         notes.push("가구 재산 1억 7,000만~2억 4,000만 원 미만 구간으로 산정액의 50%가 감액되었습니다.");
       }
       if (ctc > 0) {
         notes.push("연말정산·종소세에서 자녀세액공제를 받은 경우 해당 금액만큼 자녀장려금에서 차감됩니다(중복 불가).");
       }
-      if (totalBenefit === 0) {
+      if (totalBenefit === 0 && !belowMinThreshold) {
         notes.push("입력하신 소득 또는 가구 유형이 2026년 장려금 지급 기준에 해당하지 않습니다.");
       }
     }

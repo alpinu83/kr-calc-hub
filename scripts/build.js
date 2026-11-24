@@ -640,6 +640,8 @@ function buildSalaryPages() {
       nationalPensionMinBase: 400000,
       nationalPensionMaxBase: 6370000,
       healthInsuranceRate: 0.03545,
+      healthInsuranceMin: 9890,
+      healthInsuranceMax: 4504170,
       longTermCareRateOfHealth: 0.1295,
       employmentInsuranceRate: 0.009
     })

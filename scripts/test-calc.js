@@ -220,14 +220,44 @@ function runTests() {
   eq(hold20.creditRate, 0.8, "고령자+장기보유 최대 80% 공제");
   assert(hold20.totalJongbuTax > 0, "공시가 20억 종부세 발생");
 
-  // 20. 근로장려금 · 자녀장려금 (맞벌이 600만 미만 홑벌이 재분류 검증)
+  // 20. 근로장려금 · 자녀장려금 (맞벌이 600만 미만 홑벌이 재분류 + 1만 5천 원 미만 부지급 검증)
   eq(Calc.calcEitc({ household: "single", income: 6000000, assets: 100000000 }).eitc, 1650000, "단독 최대 165만 원");
   eq(Calc.calcEitc({ household: "dualEarner", income: 12000000, children: 2, assets: 100000000 }).totalBenefit, 5300000, "맞벌이 330만 + 자녀 2명 200만");
   eq(Calc.calcEitc({ household: "dualEarner", income: 5000000, children: 0, assets: 100000000 }).reclassifiedToSingleEarner, true, "맞벌이 600만 미만 홑벌이 분류");
   eq(Calc.calcEitc({ household: "dualEarner", income: 40000000, children: 0, assets: 100000000 }).eitc > 0, true, "2026 맞벌이 4,400만 미만 수급");
+  eq(Calc.calcEitc({ household: "single", income: 21950000, assets: 100000000 }).eitc, 0, "조특법 제100조의5: 산정액 1만 5천 원 미만 부지급");
   eq(Calc.calcEitc({ household: "single", income: 6000000, assets: 250000000 }).totalBenefit, 0, "재산 2.4억 이상 제외");
 
-  console.log("All 20 calculator unit tests passed! (statute-verified 2026 expectations)");
+  // 21. 2차 전수 법령 감사 추가 검증 (건보 상·하한, 기부금 30% 한도, 양도세 단기+중과 중복, 자동차세 10만 이하 6·9월 연납 불가)
+  const salUltraHigh = Calc.calcSalary(2400000000, 0, 1); // 월 2억 → 2026 건보 상한 4,591,740원
+  eq(salUltraHigh.healthInsurance, 4591740, "2026 건강보험료 본인 부담 상한 4,591,740원 적용");
+  const salVeryLow = Calc.calcSalary(2400000, 0, 1); // 월 20만 → 2026 건보 하한 10,080원
+  eq(salVeryLow.healthInsurance, 10080, "2026 건강보험료 본인 부담 하한 10,080원 적용");
+
+  const yeDonCap = Calc.calcYearEndTax({ gross: 50000000, dependents: 1, donation: 30000000 });
+  const yeDonAtCap = Calc.calcYearEndTax({ gross: 50000000, dependents: 1, donation: Math.floor(yeDonCap.earnedIncome * 0.3) });
+  eq(yeDonCap.donationCredit, yeDonAtCap.donationCredit, "소득세법 제59조의4④: 일반기부금 근로소득금액 30% 한도 적용");
+
+  const trOverlap = Calc.calcPropertyTransferTax({
+    buyPrice: 500000000,
+    sellPrice: 2000000000,
+    expenses: 0,
+    holdYears: 1.5,
+    resideYears: 0,
+    isOneHome: false,
+    heavyMode: "three"
+  });
+  // taxBase = 14.975억 → 단기 60% = 8.985억 vs 기본세율+30%p = (14.975억×45%-6,594만) + 4.4925억 = 10.57185억 → 큰 금액 적용
+  assert(trOverlap.transferTax > Math.floor(trOverlap.taxBase * 0.6), "소득세법 제104조⑤: 단기(60%)와 다주택 중과(+30%p) 중복 시 큰 세액 적용");
+
+  const van11Jun = Calc.calcCarTax({ carType: "van11", carAge: 1, prepayMonth: 6, carPrice: 42000000 });
+  eq(van11Jun.prepayUnavailable, true, "지방세법 제128조: 연세액 10만 원 이하 차량은 6월 연납 불가");
+  eq(van11Jun.prepayDiscount, 0, "연세액 10만 원 이하 6월 연납 할인 0원");
+  const van11Jan = Calc.calcCarTax({ carType: "van11", carAge: 1, prepayMonth: 1, carPrice: 42000000 });
+  eq(van11Jan.prepayUnavailable, false, "연세액 10만 원 이하 1월 연납은 정상 적용");
+  assert(van11Jan.prepayDiscount > 0, "연세액 10만 원 이하 1월 연납 할인 정상 적용");
+
+  console.log("All 20 calculator unit tests + statutory edge-case guards passed! (2026 verified)");
 }
 
 runTests();

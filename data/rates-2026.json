@@ -29,6 +29,8 @@
     "nationalPensionMinBase": 410000,
     "nationalPensionMaxBase": 6590000,
     "healthInsuranceRate": 0.03595,
+    "healthInsuranceMin": 10080,
+    "healthInsuranceMax": 4591740,
     "longTermCareRateOfHealth": 0.1314,
     "employmentInsuranceRate": 0.009,
     "localIncomeTaxRate": 0.1,

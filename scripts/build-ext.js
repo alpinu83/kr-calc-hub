@@ -2011,7 +2011,7 @@ module.exports = function buildExtendedPages(ctx) {
           const x = Calc.calcCarTax({ carType: c.type, cc: c.cc, carAge: 1, prepayMonth: p.m, carPrice: c.price * 10000 });
           return {
             current: p.cur,
-            cells: [p.lbl, Calc.formatWon(x.prepayDiscount), Calc.formatWon(x.finalCarTax)]
+            cells: [p.lbl, x.prepayUnavailable ? "6월 일시부과 (연납 불가)" : Calc.formatWon(x.prepayDiscount), Calc.formatWon(x.finalCarTax)]
           };
         })
       });

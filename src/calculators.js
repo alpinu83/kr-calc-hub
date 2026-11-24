@@ -20,6 +20,8 @@
       nationalPensionMinBase: 410000,
       nationalPensionMaxBase: 6590000,
       healthInsuranceRate: 0.03595,
+      healthInsuranceMin: 10080,
+      healthInsuranceMax: 4591740,
       longTermCareRateOfHealth: 0.1314,
       employmentInsuranceRate: 0.009,
       localIncomeTaxRate: 0.1,
@@ -207,7 +209,12 @@
         ? clamp(Math.floor(taxableMonthly / 1000) * 1000, r.nationalPensionMinBase, r.nationalPensionMaxBase)
         : 0;
     const nationalPension = floor10(pensionBase * r.nationalPensionRate);
-    const healthInsurance = floor10(taxableMonthly * r.healthInsuranceRate);
+    // 건강보험: 보수월액 × 3.595%에 2026년 직장가입자 본인 부담 상·하한(10,080원~4,591,740원) 적용
+    const rawHealth = floor10(taxableMonthly * r.healthInsuranceRate);
+    const healthInsurance =
+      taxableMonthly > 0
+        ? clamp(rawHealth, r.healthInsuranceMin || 0, r.healthInsuranceMax || Infinity)
+        : 0;
     const longTermCare = floor10(healthInsurance * r.longTermCareRateOfHealth);
     const employmentInsurance = floor10(taxableMonthly * r.employmentInsuranceRate);
 

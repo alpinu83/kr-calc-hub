@@ -508,14 +508,16 @@
       setText("res-car-main", Calc.formatWon(res.finalCarTax));
       setText(
         "res-car-sub",
-        res.prepayDiscount > 0
+        res.prepayUnavailable
+          ? "연세액 10만 원 이하는 6월 일시부과 대상으로 6·9월 연납 불가 (1·3월 연납만 가능) · 취득세 " + Calc.formatWon(res.finalAcqTax)
+          : res.prepayDiscount > 0
           ? "연납 할인 " + Calc.formatWon(res.prepayDiscount) + " 적용 · 차량 취득세 " + Calc.formatWon(res.finalAcqTax)
           : (res.carType === "van11" ? "연간 승합차 정액 자동차세 (교육세 면제)" : "연간 자동차세 (교육세 포함)") + " · 차량 취득세 " + Calc.formatWon(res.finalAcqTax)
       );
       setText("res-car-base", Calc.formatWon(res.discountedBase) + (res.ageDiscountRate > 0 ? " (차령 -" + Math.round(res.ageDiscountRate * 100) + "%)" : ""));
       setText("res-car-edu", res.carType === "van11" ? "0원 (승합차 면제)" : Calc.formatWon(res.localEduTax));
       setText("res-car-annual", Calc.formatWon(res.annualCarTax));
-      setText("res-car-prepay", negWon(res.prepayDiscount));
+      setText("res-car-prepay", res.prepayUnavailable ? "0원 (6·9월 연납 불가)" : negWon(res.prepayDiscount));
       setText(
         "res-car-acq-raw",
         Calc.formatWon(res.rawAcqTax) + " (" + Math.round(res.acqRate * 100) + "%" + (res.isUsedCar ? "" : " · 공급가 기준") + ")"
