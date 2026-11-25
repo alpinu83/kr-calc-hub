@@ -475,6 +475,7 @@ function renderLayout({
   <footer class="site-footer">
     <div class="container footer-inner">
       <div>${escapeHtml(DATA.siteName)} · ${DATA.year}년 세율·요율 기준 · 본 계산 결과는 참고용 추정치입니다.</div>
+      <div>Copyright by GM Corporation.</div>
       <nav class="footer-links" aria-label="사이트 안내">
         <a href="/tips/">절세 꿀팁 모음</a>
         <a href="/links/">공식 사이트 모음</a>
