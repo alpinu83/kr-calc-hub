@@ -21,6 +21,7 @@ const BASE_PATH = (() => {
   }
 })();
 const GENERATED_URLS = [];
+const generateSeo = require("./generate-seo");
 
 const RELATION_LABELS = {
   spouse: "배우자",
