@@ -7,6 +7,36 @@
 })(typeof self !== "undefined" ? self : this, function (WAGE_TAX_TABLE) {
   "use strict";
 
+// 입력 검증 유틸리티 (CEO 지시 반영)
+/**
+ * 숫자 입력 검증
+ * @param {*} value 검증할 값
+ * @param {string} name 변수명 (오류 메시지용)
+ * @throws {TypeError} 숫자가 아니면
+ * @returns {number} 검증된 숫자
+ */
+function validateNumber(value, name) {
+  if (typeof value !== "number" || isNaN(value)) {
+    throw new TypeError(`${name} must be a valid number`);
+  }
+  return value;
+}
+/**
+ * 열거형 값 검증
+ * @param {*} value 검증할 값
+ * @param {Array} allowed 허용된 값 배열
+ * @param {string} name 변수명
+ * @throws {RangeError} 허용되지 않은 값이면
+ * @returns {*} 검증된 값
+ */
+function validateEnum(value, allowed, name) {
+  if (!allowed.includes(value)) {
+    throw new RangeError(`${name} must be one of ${allowed.join(", ")}`);
+  }
+  return value;
+}
+
+
   /*
    * 2026년 기준 요율 (2026-11-23 법령·고시 재검증)
    * - 국민연금 4.75%, 기준소득월액 41만~659만 원(2026.7.1~2027.6.30 / 2026.6.30까지는 40만~637만 원)
